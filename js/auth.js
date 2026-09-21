@@ -1,6 +1,7 @@
 /**
  * HYNAOS — Authentication & Role Verification Module
  * Hyna Studio Management System
+ * Refactored for Cryptographic Session Management (Strict RLS)
  */
 
 // Helper: Show Alert Message in Form UI
@@ -73,25 +74,18 @@ function isValidEmail(email) {
 }
 
 /**
- * Fetch Profile and Check Actual Database Role
+ * Fetch Profile and Check Actual Database Role using the current session
  */
-async function checkUserRole(userId, expectedEmail = "") {
-  const { getClient, isDemoMode, demoProfiles } = window.HYNAOS_SUPABASE || {};
+async function checkUserRole(userId) {
+  const { getClient, isDemoMode } = window.HYNAOS_SUPABASE || {};
 
-  // Check Demo Fallback Mode first if active or client unavailable
   if (isDemoMode() || !getClient()) {
-    const match = demoProfiles.find(p => p.email.toLowerCase() === expectedEmail.toLowerCase());
-    if (match) {
-      return match.role;
-    }
-    // Default fallback role check if custom email used in demo
-    if (expectedEmail.toLowerCase().includes('admin')) return 'admin';
-    if (expectedEmail.toLowerCase().includes('employee')) return 'employee';
     return null;
   }
 
   try {
     const supabase = getClient();
+    // With RLS, this will only return the profile if the authenticated user has access
     const { data, error } = await supabase
       .from('profiles')
       .select('role, status')
@@ -111,6 +105,37 @@ async function checkUserRole(userId, expectedEmail = "") {
 }
 
 /**
+ * Enforce Session State & Route Protection
+ */
+async function enforceSessionState() {
+  const { getClient, isDemoMode } = window.HYNAOS_SUPABASE || {};
+  if (isDemoMode() || !getClient()) return;
+
+  const supabase = getClient();
+  const { data: { session }, error } = await supabase.auth.getSession();
+  
+  const currentPath = window.location.pathname.toLowerCase();
+  const isDashboardPage = currentPath.includes('dashboard');
+  const isLoginPage = currentPath.includes('login') || currentPath.endsWith('index.html') || currentPath === '/';
+
+  // If on a dashboard but no valid session, kick to login
+  if (isDashboardPage && (!session || error)) {
+    window.location.href = 'index.html';
+    return;
+  }
+
+  // If on a login page and session exists, route to correct dashboard
+  if (isLoginPage && session && !error) {
+    const role = await checkUserRole(session.user.id);
+    if (role === 'admin') {
+      window.location.href = 'admin-dashboard.html';
+    } else if (role === 'employee') {
+      window.location.href = 'employee-dashboard.html';
+    }
+  }
+}
+
+/**
  * Handle Admin Login
  */
 async function handleAdminLogin(event) {
@@ -123,63 +148,25 @@ async function handleAdminLogin(event) {
   const email = emailInput ? emailInput.value.trim() : '';
   const password = passwordInput ? passwordInput.value.trim() : '';
 
-  // 1. Email Validation
-  if (!email) {
-    showAlert('Please enter your administrator email address.');
+  if (!email || !isValidEmail(email)) {
+    showAlert('Please enter a valid administrator email address.');
     return;
   }
-
-  if (!isValidEmail(email)) {
-    showAlert('Please enter a valid email address.');
-    return;
-  }
-
-  // 2. Password Validation
   if (!password) {
     showAlert('Please enter your password.');
     return;
   }
 
   setLoadingState(true);
-
   const { getClient, isDemoMode } = window.HYNAOS_SUPABASE || {};
 
   try {
     if (isDemoMode() || !getClient()) {
-      // Simulated Demo Authentication Delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      const { demoProfiles } = window.HYNAOS_SUPABASE || {};
-      const query = email.toLowerCase();
-      const adminProfile = demoProfiles ? demoProfiles.find(p => 
-        (p.email && p.email.toLowerCase() === query) || 
-        (p.employee_id && p.employee_id.toLowerCase() === query) ||
-        (p.id && p.id.toLowerCase() === query)
-      ) : null;
-
-      if (!adminProfile || password !== adminProfile.password) {
-        setLoadingState(false);
-        showAlert('Incorrect email or password. Please try again.', 'danger');
-        return;
-      }
-
-      if (adminProfile.role !== 'admin') {
-        setLoadingState(false);
-        showAlert('You do not have Administrator access.', 'danger');
-        return;
-      }
-
-      localStorage.setItem('hynaos_current_user', JSON.stringify(adminProfile));
       setLoadingState(false);
-      showAlert('Administrator login verified! Access granted.', 'success');
-      console.log('✅ HYNAOS Admin login authorized (Demo Mode).');
-      setTimeout(() => {
-        window.location.href = 'admin-dashboard.html';
-      }, 600);
+      showAlert('Demo mode does not support cryptographic sessions.', 'danger');
       return;
     }
 
-    // 3. Real Supabase Authentication
     const supabase = getClient();
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
@@ -188,32 +175,24 @@ async function handleAdminLogin(event) {
 
     if (authError) {
       setLoadingState(false);
-      if (authError.message.includes('Invalid login credentials')) {
-        showAlert('Incorrect email or password. Please try again.');
-      } else {
-        showAlert(authError.message || 'Authentication failed. Please check your network connection.');
-      }
+      showAlert(authError.message.includes('Invalid login credentials') ? 
+        'Incorrect email or password. Please try again.' : 
+        (authError.message || 'Authentication failed.'));
       return;
     }
 
-    // 4. Database Role Verification (Strict check)
     const user = authData.user;
-    const { data: dbProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-    const actualRole = dbProfile ? dbProfile.role : await checkUserRole(user.id, email);
+    const actualRole = await checkUserRole(user.id);
 
     if (actualRole !== 'admin') {
-      // Sign out unauthorized user session
+      // Sign out unauthorized user session immediately
       await supabase.auth.signOut();
       setLoadingState(false);
       showAlert('You do not have Administrator access.', 'danger');
       return;
     }
 
-    if (dbProfile) {
-      localStorage.setItem('hynaos_current_user', JSON.stringify(dbProfile));
-    }
-
-    // Login Success
+    // Login Success - Session is securely handled by Supabase client
     setLoadingState(false);
     showAlert('Administrator login verified! Access granted.', 'success');
     setTimeout(() => {
@@ -240,52 +219,25 @@ async function handleEmployeeLogin(event) {
   const email = emailInput ? emailInput.value.trim() : '';
   const password = passwordInput ? passwordInput.value.trim() : '';
 
-  // 1. Email Validation
   if (!email) {
-    showAlert('Please enter your employee ID or email address.');
+    showAlert('Please enter your employee email address.');
     return;
   }
-
-  // 2. Password Validation
   if (!password) {
     showAlert('Please enter your password.');
     return;
   }
 
   setLoadingState(true);
-
   const { getClient, isDemoMode } = window.HYNAOS_SUPABASE || {};
 
   try {
     if (isDemoMode() || !getClient()) {
-      // Simulated Demo Authentication Delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      const { demoProfiles } = window.HYNAOS_SUPABASE || {};
-      const query = email.toLowerCase();
-      const empProfile = demoProfiles ? demoProfiles.find(p => 
-        (p.email && p.email.toLowerCase() === query) || 
-        (p.employee_id && p.employee_id.toLowerCase() === query) ||
-        (p.id && p.id.toLowerCase() === query)
-      ) : null;
-
-      if (!empProfile || password !== empProfile.password) {
-        setLoadingState(false);
-        showAlert('Incorrect Employee ID / Email or password. Please try again.', 'danger');
-        return;
-      }
-
-      localStorage.setItem('hynaos_current_user', JSON.stringify(empProfile));
       setLoadingState(false);
-      showAlert(`Welcome ${empProfile.full_name}! Access granted.`, 'success');
-      console.log(`✅ HYNAOS Employee login authorized: ${empProfile.full_name} (${empProfile.employee_id}).`);
-      setTimeout(() => {
-        window.location.href = 'employee-dashboard.html';
-      }, 600);
+      showAlert('Demo mode does not support cryptographic sessions.', 'danger');
       return;
     }
 
-    // 3. Real Supabase Authentication
     const supabase = getClient();
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
@@ -294,23 +246,13 @@ async function handleEmployeeLogin(event) {
 
     if (authError) {
       setLoadingState(false);
-      if (authError.message.includes('Invalid login credentials')) {
-        showAlert('Incorrect email or password. Please try again.');
-      } else {
-        showAlert(authError.message || 'Authentication failed. Please check your network connection.');
-      }
+      showAlert(authError.message.includes('Invalid login credentials') ? 
+        'Incorrect email or password. Please try again.' : 
+        (authError.message || 'Authentication failed.'));
       return;
     }
 
-    // 4. Database Role Verification
-    const user = authData.user;
-    const { data: dbProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-    
-    if (dbProfile) {
-      localStorage.setItem('hynaos_current_user', JSON.stringify(dbProfile));
-    }
-
-    // Login Success
+    // Login Success - Session is securely handled by Supabase client
     setLoadingState(false);
     showAlert('Employee login verified! Access granted.', 'success');
     setTimeout(() => {
@@ -379,3 +321,8 @@ window.checkUserRole = checkUserRole;
 window.togglePassword = togglePassword;
 window.forgotPassword = forgotPassword;
 window.logout = logout;
+
+// Run session check automatically on page load
+document.addEventListener('DOMContentLoaded', () => {
+  enforceSessionState();
+});

@@ -11,7 +11,7 @@
   --card-glass-bg: rgba(22, 12, 18, 0.78);
   --card-glass-border: rgba(255, 255, 255, 0.12);
 
-  --sidebar-width: 260px;
+  --sidebar-width: 250px;
   --sidebar-collapsed-width: 76px;
   --header-height: 72px;
 
@@ -1297,3 +1297,39 @@ body {
 }
 
 
+
+/* Desktop CSS Grid Layout */
+@media (min-width: 1025px) {
+  body {
+    display: grid !important;
+    grid-template-columns: var(--sidebar-width) 1fr;
+    align-items: start;
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  .sidebar {
+    position: relative !important;
+    top: 0 !important;
+    height: 100vh !important;
+    border-right: 1px solid var(--card-glass-border);
+  }
+  
+  .app-content-wrapper {
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .top-navbar {
+    position: sticky !important;
+    top: 0;
+    z-index: 1000;
+  }
+
+  .main-wrapper {
+    margin-left: 0 !important;
+    margin-top: 0 !important;
+  }
+}

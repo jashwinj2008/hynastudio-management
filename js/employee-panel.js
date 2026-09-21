@@ -398,44 +398,61 @@ function toggleCheckIn() {
 /**
  * Render Scoped Tasks
  */
-function renderMyTasks() {
+
+async function renderMyTasks() {
   const container = document.getElementById('myTasksContainer');
   if (!container) return;
+  
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) throw new Error("No active session.");
 
-  container.innerHTML = myTasksList.map(task => `
-    <div class="task-item-card">
-      <div class="task-header">
-        <div>
-          <span class="badge-priority priority-${task.priority}">${task.priority}</span>
-          <h4 class="task-title" style="margin-top:0.4rem;">${task.title}</h4>
-          <span style="font-size:0.775rem; color:var(--text-muted);">Project: ${task.project} • Deadline: ${task.deadline}</span>
-        </div>
-        <span class="badge-status badge-${task.status === 'Completed' ? 'active' : task.status === 'Review' ? 'planning' : 'onhold'}">
-          ${task.status}
-        </span>
-      </div>
-      <p class="task-desc">${task.desc}</p>
+    const profileRes = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single();
+    const fullName = profileRes.data ? profileRes.data.full_name : '';
+
+    const { data: tasks, error } = await supabase.from('tasks').select('*').eq('assignee_id', fullName);
+    if (error) throw error;
+
+    container.innerHTML = '';
+    
+    if (!tasks || tasks.length === 0) {
+      container.innerHTML = '<div class="text-center text-muted p-4">No tasks assigned to you.</div>';
+      return;
+    }
+
+    tasks.forEach(t => {
+      let badge = 'badge-primary';
+      if(t.priority === 'urgent') badge = 'badge-danger';
+      if(t.priority === 'high') badge = 'badge-warning';
       
-      <div class="task-controls">
-        <div style="display:flex; align-items:center; gap:0.5rem;">
-          <span style="font-size:0.8rem; color:var(--text-sub);">Status:</span>
-          <select class="status-select" onchange="updateTaskStatus('${task.id}', this.value)">
-            <option value="To Do" ${task.status === 'To Do' ? 'selected' : ''}>To Do</option>
-            <option value="In Progress" ${task.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
-            <option value="Review" ${task.status === 'Review' ? 'selected' : ''}>Submit for Review</option>
-            <option value="Completed" ${task.status === 'Completed' ? 'selected' : ''}>Completed</option>
-          </select>
+      const html = `
+        <div class="glass-card mb-3 p-3">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <span class="badge ${badge} me-2">${t.priority}</span>
+              <strong>${t.task_title}</strong>
+            </div>
+            <span class="text-muted small">${t.status}</span>
+          </div>
+          <p class="text-muted small mb-2">${t.description}</p>
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="small text-primary fw-bold"><i data-lucide="clock" class="me-1"></i> ${t.due_date || 'No deadline'}</div>
+          </div>
         </div>
+      `;
+      container.innerHTML += html;
+    });
 
-        <button class="btn-primary" style="padding:0.4rem 0.9rem; font-size:0.8rem;" onclick="submitTaskForReview('${task.id}')">
-          <span>Submit Work</span>
-        </button>
-      </div>
-    </div>
-  `).join('');
-
+  } catch (err) {
+    console.error("Supabase RLS/Fetch Error [my tasks]:", err);
+    container.innerHTML = `<div class="text-center text-danger p-4"><i data-lucide="shield-alert"></i> Access Denied / Data Unavailable</div>`;
+  }
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
+
 
 function updateTaskStatus(taskId, newStatus) {
   const task = myTasksList.find(t => t.id === taskId);
@@ -473,201 +490,169 @@ function loadAllProjects() {
 /**
  * Render Scoped Assigned Projects
  */
-function renderMyProjects() {
+
+async function renderMyProjects() {
   const container = document.getElementById('myProjectsContainer');
   if (!container) return;
+  
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) throw new Error("No active session.");
 
-  const allProjects = loadAllProjects();
-  const userName = (CURRENT_EMPLOYEE.name || "").toLowerCase().trim();
-  const userId = (CURRENT_EMPLOYEE.id || "").toLowerCase().trim();
+    // Technically projects are readable by all authenticated users
+    const { data: projects, error } = await supabase.from('projects').select('*');
+    if (error) throw error;
 
-  // Filter projects where logged-in user is Lead or listed in assignedMembers
-  const myProjects = allProjects.filter(prj => {
-    const lead = (prj.lead || prj.manager || "").toLowerCase().trim();
-    const members = (prj.assignedMembers || []).map(m => String(m).toLowerCase().trim());
+    container.innerHTML = '';
+    
+    if (!projects || projects.length === 0) {
+      container.innerHTML = '<div class="text-center text-muted p-4">No projects available.</div>';
+      return;
+    }
 
-    const isLead = lead && (lead === userName || lead.includes(userName) || userName.includes(lead));
-    const isMember = members.some(m => m === userName || m.includes(userName) || userName.includes(m) || (userId && m === userId));
+    projects.forEach(p => {
+      const prog = p.progress || 0;
+      const html = `
+        <div class="glass-card mb-3 p-3">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="mb-0">${p.project_name}</h6>
+            <span class="badge bg-secondary">${p.status}</span>
+          </div>
+          <p class="text-muted small mb-3">Manager: ${p.manager_id}</p>
+          <div class="d-flex justify-content-between text-muted small mb-1">
+            <span>Progress</span>
+            <span>${prog}%</span>
+          </div>
+          <div class="progress" style="height: 5px;">
+            <div class="progress-bar bg-primary" style="width: ${prog}%"></div>
+          </div>
+        </div>
+      `;
+      container.innerHTML += html;
+    });
 
-    return isLead || isMember;
-  });
-
-  // Update Stat Count Card
-  const statCount = document.getElementById('statMyProjectsCount');
-  if (statCount) {
-    statCount.textContent = String(myProjects.length).padStart(2, '0');
+  } catch (err) {
+    console.error("Supabase RLS/Fetch Error [my projects]:", err);
+    container.innerHTML = `<div class="text-center text-danger p-4"><i data-lucide="shield-alert"></i> Access Denied / Data Unavailable</div>`;
   }
-
-  if (myProjects.length === 0) {
-    container.innerHTML = `
-      <div class="panel-card" style="text-align:center; padding: 2.5rem 1rem;">
-        <i data-lucide="folder-x" size="40" style="color:var(--text-muted); margin-bottom:0.75rem;"></i>
-        <h4 style="color:var(--text-muted); font-weight:600;">No Projects Assigned</h4>
-        <p style="font-size:0.85rem; color:var(--text-sub); margin-top:0.3rem;">You have not been assigned to any project yet by the Administrator.</p>
-      </div>
-    `;
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-    return;
-  }
-
-  container.innerHTML = myProjects.map(prj => {
-    const leadName = prj.lead || prj.manager || "Unassigned";
-    const members = prj.assignedMembers || [leadName];
-    const membersTags = members.map(m => {
-      const isSelf = (CURRENT_EMPLOYEE.name.toLowerCase() === String(m).toLowerCase() || CURRENT_EMPLOYEE.id.toLowerCase() === String(m).toLowerCase());
-      const selfAvatar = isSelf ? CURRENT_EMPLOYEE.avatarUrl : null;
-      
-      let avatarUrl = selfAvatar;
-      if (!avatarUrl) {
-        try {
-          const empListStr = localStorage.getItem('hynaos_employees_list');
-          if (empListStr) {
-            const list = JSON.parse(empListStr);
-            const found = list.find(e => e.name.toLowerCase() === String(m).toLowerCase() || e.id.toLowerCase() === String(m).toLowerCase());
-            if (found) {
-              avatarUrl = localStorage.getItem('hynaos_profile_avatar_' + found.id) || found.avatarUrl || found.avatar_url || null;
-            }
-          }
-        } catch(e) {}
-      }
-
-      if (avatarUrl) {
-        return `<span style="display:inline-flex; align-items:center; gap:0.25rem; font-size:0.75rem; background:rgba(255,255,255,0.06); padding:0.2rem 0.5rem; border-radius:4px; margin-right:0.35rem; margin-top:0.25rem; border:1px solid rgba(255,255,255,0.1);"><img src="${avatarUrl}" alt="${m}" style="width:16px; height:16px; border-radius:50%; object-fit:cover;"> ${m}</span>`;
-      }
-      return `<span style="display:inline-block; font-size:0.75rem; background:rgba(255,255,255,0.06); padding:0.2rem 0.5rem; border-radius:4px; margin-right:0.35rem; margin-top:0.25rem; border:1px solid rgba(255,255,255,0.1);">👤 ${m}</span>`;
-    }).join('');
-
-    return `
-      <div class="panel-card" style="margin-bottom:1.25rem;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.75rem;">
-          <div>
-            <h4 style="font-size:1.1rem; color:var(--text-white); font-weight:700;">${prj.name}</h4>
-            <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-top:0.2rem;">Deadline: ${prj.deadline || 'No deadline'}</span>
-          </div>
-          <span class="badge-status badge-${prj.status}">${prj.status}</span>
-        </div>
-
-        <p style="font-size:0.85rem; color:var(--text-sub); margin-bottom:0.75rem;">${prj.description || ''}</p>
-
-        <div style="margin-bottom:0.75rem;">
-          <span style="font-size:0.775rem; background:rgba(234, 179, 8, 0.15); color: #fde047; padding: 0.25rem 0.6rem; border-radius: 999px; font-weight: 600; border: 1px solid rgba(234, 179, 8, 0.3);">👑 Lead: ${leadName}</span>
-        </div>
-
-        <div style="margin-bottom:1rem;">
-          <label style="font-size:0.725rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; display:block; margin-bottom:0.25rem;">Assigned Team Members</label>
-          <div>${membersTags}</div>
-        </div>
-
-        <div>
-          <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-sub); margin-bottom:0.35rem;">
-            <span>Project Completion</span>
-            <strong>${prj.progress || 0}%</strong>
-          </div>
-          <div style="height:8px; background:rgba(255,255,255,0.1); border-radius:999px; overflow:hidden;">
-            <div style="height:100%; width:${prj.progress || 0}%; background:linear-gradient(90deg, #2563eb, #3b82f6); border-radius:999px;"></div>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
+
 
 /**
  * Render Work Log Submissions
  */
-function renderMyWorkLogs() {
-  const tbody = document.getElementById('workLogTableBody');
-  if (!tbody) return;
 
-  tbody.innerHTML = myWorkLogs.map(w => `
-    <tr>
-      <td><strong>${w.title}</strong></td>
-      <td>${w.project}</td>
-      <td>${w.date}</td>
-      <td><span class="badge-status badge-planning">${w.status}</span></td>
-    </tr>
-  `).join('');
+async function renderMyWorkLogs() {
+  const tbody = document.getElementById('workLogsTableBody');
+  if (!tbody) return;
+  
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) throw new Error("No active session.");
+
+    const { data: logs, error } = await supabase.from('work_logs').select('*');
+    if (error) throw error;
+
+    if (!logs || logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No work logs found.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = logs.map(l => {
+      return `
+        <tr>
+          <td><strong>${l.date}</strong></td>
+          <td>${l.hours_worked}</td>
+          <td>${l.description}</td>
+          <td><span class="status-badge ${l.status === 'Approved' ? 'status-active' : 'status-pending'}">${l.status}</span></td>
+        </tr>
+      `;
+    }).join('');
+
+  } catch (err) {
+    console.error("Supabase RLS/Fetch Error [my logs]:", err);
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger"><i data-lucide="shield-alert"></i> Access Denied / Data Unavailable</td></tr>`;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
 }
+
 
 /**
  * Render Leave Requests
  */
-function renderMyLeaves() {
+
+async function renderMyLeaves() {
   const tbody = document.getElementById('leaveTableBody');
   if (!tbody) return;
+  
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) throw new Error("No active session.");
 
-  tbody.innerHTML = myLeaveRequests.map(l => `
-    <tr>
-      <td><strong>${l.type}</strong></td>
-      <td>${l.dates}</td>
-      <td>${l.reason}</td>
-      <td><span class="badge-status badge-${l.status.toLowerCase() === 'approved' ? 'active' : 'onhold'}">${l.status}</span></td>
-      <td><span style="font-size:0.8rem; color:var(--text-sub);">${l.comments}</span></td>
-    </tr>
-  `).join('');
+    const { data: leaves, error } = await supabase.from('leave_requests').select('*');
+    if (error) throw error;
+
+    if (!leaves || leaves.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No leave requests found.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = leaves.map(l => {
+      const statusClass = l.status === 'Approved' ? 'status-active' : (l.status === 'Rejected' ? 'status-inactive' : 'status-pending');
+      return `
+        <tr>
+          <td><strong>${l.type}</strong></td>
+          <td>${l.start_date} to ${l.end_date}</td>
+          <td>${l.reason}</td>
+          <td><span class="status-badge ${statusClass}">${l.status}</span></td>
+        </tr>
+      `;
+    }).join('');
+
+  } catch (err) {
+    console.error("Supabase RLS/Fetch Error [my leaves]:", err);
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger"><i data-lucide="shield-alert"></i> Access Denied / Data Unavailable</td></tr>`;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
 }
+
 
 /**
  * Render Personal Profile Details
  */
-function renderMyProfile() {
-  const nameEl = document.getElementById('profileName');
-  const emailEl = document.getElementById('profileEmail');
-  const idEl = document.getElementById('profileId');
-  const posEl = document.getElementById('profilePos');
-  const deptEl = document.getElementById('profileDept');
 
-  if (nameEl) nameEl.textContent = CURRENT_EMPLOYEE.name;
-  if (emailEl) emailEl.textContent = CURRENT_EMPLOYEE.email;
-  if (idEl) idEl.textContent = CURRENT_EMPLOYEE.id;
-  if (posEl) posEl.textContent = CURRENT_EMPLOYEE.position;
-  if (deptEl) deptEl.textContent = CURRENT_EMPLOYEE.department;
+async function renderMyProfile() {
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) return;
 
-  // Header Avatar & Details
-  const topAvatar = document.querySelector('.user-profile-badge .user-avatar');
-  const topName = document.querySelector('.user-profile-badge .name');
-  const topRole = document.querySelector('.user-profile-badge .role');
-  
-  if (topName) topName.textContent = CURRENT_EMPLOYEE.name;
-  if (topRole) topRole.textContent = CURRENT_EMPLOYEE.position;
+    const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+    if (error) throw error;
 
-  if (topAvatar) {
-    if (CURRENT_EMPLOYEE.avatarUrl) {
-      topAvatar.innerHTML = `<img src="${CURRENT_EMPLOYEE.avatarUrl}" alt="${CURRENT_EMPLOYEE.name}">`;
-    } else {
-      topAvatar.textContent = CURRENT_EMPLOYEE.initials;
-    }
-  }
+    // Assuming we have fields to update on employee-dashboard.html
+    const nameElems = document.querySelectorAll('.user-name-display');
+    const roleElems = document.querySelectorAll('.user-role-display');
+    
+    nameElems.forEach(el => el.textContent = profile.full_name || 'Employee');
+    roleElems.forEach(el => el.textContent = profile.position || 'Team Member');
 
-  const mobileAvatar = document.getElementById('sidebarMobileAvatar');
-  if (mobileAvatar) {
-    if (CURRENT_EMPLOYEE.avatarUrl) {
-      mobileAvatar.innerHTML = `<img src="${CURRENT_EMPLOYEE.avatarUrl}" alt="${CURRENT_EMPLOYEE.name}">`;
-    } else {
-      mobileAvatar.textContent = CURRENT_EMPLOYEE.initials;
-    }
-  }
-
-  // Dashboard Greeting Title
-  const dashWelcome = document.querySelector('#dashboardTab .page-title-group h2');
-  if (dashWelcome) dashWelcome.textContent = `Good Morning, ${CURRENT_EMPLOYEE.name} 👋`;
-
-  // Profile Tab Circle Avatar
-  const profileAvatar = document.getElementById('profileAvatarCircle');
-  const removeBtn = document.getElementById('btnRemovePhoto');
-
-  if (profileAvatar) {
-    if (CURRENT_EMPLOYEE.avatarUrl) {
-      profileAvatar.innerHTML = `<img src="${CURRENT_EMPLOYEE.avatarUrl}" alt="${CURRENT_EMPLOYEE.name}">`;
-      if (removeBtn) removeBtn.style.display = 'inline-flex';
-    } else {
-      profileAvatar.textContent = CURRENT_EMPLOYEE.initials;
-      if (removeBtn) removeBtn.style.display = 'none';
-    }
+  } catch (err) {
+    console.error("Supabase RLS/Fetch Error [my profile]:", err);
   }
 }
+
 
 /**
  * Handle Profile Image Upload
@@ -920,29 +905,28 @@ function saveSelfProfile(e) {
 /**
  * Update Employee Dashboard Stat Cards dynamically
  */
-function updateEmployeeDashboardStatCards() {
-  const statMyProjectsCount = document.getElementById('statMyProjectsCount');
-  if (statMyProjectsCount && Array.isArray(MY_PROJECTS)) {
-    statMyProjectsCount.textContent = String(MY_PROJECTS.length).padStart(2, '0');
-  }
 
-  const statMyTasksCompleted = document.getElementById('statMyTasksCompleted');
-  if (statMyTasksCompleted && Array.isArray(myTasksList)) {
-    const completedCount = myTasksList.filter(t => t.status === 'Completed').length + 18;
-    statMyTasksCompleted.textContent = completedCount;
-  }
+async function updateEmployeeDashboardStatCards() {
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) return;
 
-  const statMyPendingTasks = document.getElementById('statMyPendingTasks');
-  if (statMyPendingTasks && Array.isArray(myTasksList)) {
-    const pendingCount = myTasksList.filter(t => t.status !== 'Completed').length;
-    statMyPendingTasks.textContent = String(pendingCount).padStart(2, '0');
-  }
-
-  const statMyUpcomingDeadlines = document.getElementById('statMyUpcomingDeadlines');
-  if (statMyUpcomingDeadlines && Array.isArray(myTasksList)) {
-    statMyUpcomingDeadlines.textContent = "02";
+    // Gracefully update task count for the employee
+    const profileRes = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single();
+    if (profileRes.data) {
+      const { count: tasksCount } = await supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('assignee_id', profileRes.data.full_name);
+      
+      const tskElem = document.getElementById('statActiveTasks');
+      if (tskElem && tasksCount !== null) tskElem.textContent = tasksCount;
+    }
+  } catch (err) {
+    console.error("Supabase RLS/Fetch Error [employee stats]:", err);
   }
 }
+
 
 /**
  * Toast Notification Alert Helper

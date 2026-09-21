@@ -238,178 +238,191 @@ function initNavigation() {
 /**
  * Render Employee Management Roster Table
  */
-function renderEmployeesTable() {
-  const tbody = document.getElementById('employeeTableBody');
-  const searchInput = document.getElementById('empSearchInput');
-  const deptFilter = document.getElementById('empDeptFilter');
 
+async function renderEmployeesTable() {
+  const tbody = document.getElementById('employeeTableBody');
   if (!tbody) return;
 
-  const query = searchInput ? searchInput.value.toLowerCase() : '';
-  const selectedDept = deptFilter ? deptFilter.value : 'all';
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) throw new Error("No active session.");
 
-  const filtered = employeesList.filter(emp => {
-    const matchesSearch = emp.name.toLowerCase().includes(query) || 
-                          emp.email.toLowerCase().includes(query) || 
-                          emp.id.toLowerCase().includes(query);
-    const matchesDept = selectedDept === 'all' || emp.department === selectedDept;
-    return matchesSearch && matchesDept;
-  });
+    const { data: profiles, error } = await supabase.from('profiles').select('*');
+    if (error) throw error;
+    
+    if (!profiles || profiles.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No employees found.</td></tr>';
+      return;
+    }
 
-  tbody.innerHTML = filtered.map(emp => {
-    const avatarUrl = localStorage.getItem('hynaos_profile_avatar_' + emp.id) || emp.avatarUrl || emp.avatar_url || emp.avatar || null;
-    const avatarInner = avatarUrl ? `<img src="${avatarUrl}" alt="${emp.name}">` : emp.initials;
-
-    return `
-    <tr>
-      <td>
-        <div class="user-cell">
-          <div class="user-avatar-sm" style="${avatarUrl ? 'padding:0;' : ''}">${avatarInner}</div>
-          <div>
-            <strong>${emp.name}</strong>
-            <div style="font-size:0.75rem; color: var(--text-muted);">${emp.email}</div>
-          </div>
-        </div>
-      </td>
-      <td><code>${emp.id}</code></td>
-      <td>${emp.department}</td>
-      <td>${emp.position}</td>
-      <td><span class="badge-status badge-active">Active</span></td>
-      <td>
-        <button class="btn-icon-action" title="Edit Employee" onclick="editEmployee('${emp.id}')">
-          <i data-lucide="edit-3" size="14"></i>
-        </button>
-        <button class="btn-icon-action" title="View Profile" onclick="viewEmployeeProfile('${emp.id}')">
-          <i data-lucide="eye" size="14"></i>
-        </button>
-      </td>
-    </tr>
-  `;
-  }).join('');
-
-  // Update total count
-  const countEl = document.getElementById('statTotalEmployees');
-  if (countEl) countEl.textContent = String(employeesList.length).padStart(2, '0');
-
-  if (typeof lucide !== 'undefined') lucide.createIcons();
+    tbody.innerHTML = profiles.map(e => {
+      const initials = (e.full_name || 'U N').split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+      const statusClass = e.status === 'active' ? 'status-active' : 'status-inactive';
+      return `
+        <tr>
+          <td>
+            <div class="d-flex align-items-center">
+              <div class="avatar-circle me-3">${initials}</div>
+              <div>
+                <div class="fw-bold text-white">${e.full_name || 'Unknown'}</div>
+                <div class="text-muted small">${e.email}</div>
+              </div>
+            </div>
+          </td>
+          <td>${e.employee_id}</td>
+          <td>${e.department || '-'}</td>
+          <td>${e.position || '-'}</td>
+          <td>${e.joined_at ? new Date(e.joined_at).toLocaleDateString() : '-'}</td>
+          <td><span class="status-badge ${statusClass}">${e.status}</span></td>
+          <td>
+            <button class="btn btn-sm btn-outline-secondary me-1"><i data-lucide="edit-2"></i></button>
+            <button class="btn btn-sm btn-outline-danger"><i data-lucide="trash-2"></i></button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error("Supabase RLS/Fetch Error [profiles]:", err);
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger"><i data-lucide="shield-alert"></i> Access Denied / Data Unavailable</td></tr>`;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
 }
+
 
 /**
  * Render Projects List & Overview
  */
-function renderProjectsList() {
-  const containers = [
-    document.getElementById('projectsContainer'),
-    document.getElementById('projectsDirectoryContainer')
-  ].filter(Boolean);
 
-  if (containers.length === 0) return;
+async function renderProjectsList() {
+  const container = document.getElementById('projectsListContainer');
+  if (!container) return;
 
-  if (projectsList.length === 0) {
-    containers.forEach(c => {
-      c.innerHTML = `<p style="color:var(--text-muted); font-size:0.9rem;">No projects created yet. Click "+ ADD NEW PROJECT" above to create one.</p>`;
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) throw new Error("No active session.");
+
+    const { data: projects, error } = await supabase.from('projects').select('*');
+    if (error) throw error;
+    
+    container.innerHTML = '';
+    
+    if (!projects || projects.length === 0) {
+      container.innerHTML = '<div class="text-center text-muted p-4">No projects available.</div>';
+      return;
+    }
+
+    projects.forEach(p => {
+      const prog = p.progress || 0;
+      const statusBadge = p.status === 'completed' ? 'status-active' : 'status-pending';
+      const statusText = p.status === 'completed' ? 'Completed' : 'Active';
+
+      const card = `
+        <div class="col-md-6 col-lg-4 mb-4">
+          <div class="glass-card h-100 position-relative project-card">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <h5 class="mb-1">${p.project_name}</h5>
+                <p class="text-muted small mb-0">${p.id}</p>
+              </div>
+              <span class="status-badge ${statusBadge}">${statusText}</span>
+            </div>
+            <p class="text-muted small line-clamp-2 mb-4">${p.description || ''}</p>
+            <div class="d-flex justify-content-between text-muted small mb-2">
+              <span>Progress</span>
+              <span>${prog}%</span>
+            </div>
+            <div class="progress mb-4" style="height: 6px;">
+              <div class="progress-bar ${prog === 100 ? 'bg-success' : 'bg-primary'}" role="progressbar" style="width: ${prog}%"></div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-auto border-top border-white-10 pt-3">
+              <div class="small"><i data-lucide="calendar" class="me-1"></i> ${p.deadline || 'No deadline'}</div>
+              <div class="small fw-bold text-primary"><i data-lucide="user" class="me-1"></i> ${p.manager_id || 'No manager'}</div>
+            </div>
+          </div>
+        </div>
+      `;
+      container.innerHTML += card;
     });
-    return;
+
+  } catch (err) {
+    console.error("Supabase RLS/Fetch Error [projects]:", err);
+    container.innerHTML = `<div class="text-center text-danger p-4"><i data-lucide="shield-alert"></i> Access Denied / Data Unavailable</div>`;
   }
-
-  const html = projectsList.map(prj => {
-    const leadName = prj.lead || prj.manager || "Unassigned";
-    const members = prj.assignedMembers || [leadName];
-    const membersTags = members.map(m => {
-      const foundEmp = Array.isArray(employeesList) ? employeesList.find(e => e.name.toLowerCase() === String(m).toLowerCase() || e.id.toLowerCase() === String(m).toLowerCase()) : null;
-      const empId = foundEmp ? foundEmp.id : null;
-      const avatarUrl = empId ? (localStorage.getItem('hynaos_profile_avatar_' + empId) || foundEmp.avatarUrl || foundEmp.avatar_url || null) : null;
-      
-      if (avatarUrl) {
-        return `<span class="member-tag" style="display:inline-flex; align-items:center; gap:0.25rem;"><img src="${avatarUrl}" alt="${m}" style="width:16px; height:16px; border-radius:50%; object-fit:cover;"> ${m}</span>`;
-      }
-      return `<span class="member-tag">👤 ${m}</span>`;
-    }).join('');
-
-    return `
-      <div class="project-card">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem;">
-          <div>
-            <h4 style="font-size:1.05rem; color:var(--text-white); font-weight:700;">${prj.name}</h4>
-            <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-top:0.2rem;">Deadline: ${prj.deadline || 'No deadline'}</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:0.4rem;">
-            <span class="badge-status badge-${prj.status}">${prj.status}</span>
-            <button type="button" class="btn-edit-project" onclick="editProject('${prj.id}')" title="Edit Project">
-              <i data-lucide="edit-3" size="14"></i>
-            </button>
-            <button type="button" class="btn-delete-project" onclick="deleteProject('${prj.id}')" title="Delete Project">
-              <i data-lucide="trash-2" size="14"></i>
-            </button>
-          </div>
-        </div>
-
-        <p style="font-size:0.8rem; color:var(--text-sub); margin-top:0.4rem; margin-bottom:0.4rem;">${prj.description || ''}</p>
-
-        <div style="margin-top:0.25rem;">
-          <span class="project-lead-pill"><i data-lucide="crown" size="12"></i> Lead: ${leadName}</span>
-        </div>
-
-        <div style="margin-top:0.5rem;">
-          <label style="font-size:0.725rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; display:block; margin-bottom:0.2rem;">Assigned Team Members</label>
-          <div class="project-members-tags">
-            ${membersTags}
-          </div>
-        </div>
-
-        <div style="margin-top:auto; padding-top:0.75rem;">
-          <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-sub); margin-bottom:0.35rem;">
-            <span>Completion Progress</span>
-            <strong>${prj.progress || 0}%</strong>
-          </div>
-          <div class="progress-bar-wrapper">
-            <div class="progress-bar-fill" style="width: ${prj.progress || 0}%;"></div>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  containers.forEach(c => {
-    c.innerHTML = html;
-  });
-
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
+
 
 /**
  * Render Kanban Task Board
  */
-function renderKanbanBoard() {
-  const cols = {
-    todo: document.getElementById('kanbanColTodo'),
-    in_progress: document.getElementById('kanbanColInProgress'),
-    review: document.getElementById('kanbanColReview'),
-    completed: document.getElementById('kanbanColCompleted')
-  };
 
-  if (!cols.todo) return;
+async function renderKanbanBoard() {
+  const todoCol = document.getElementById('todoTasks');
+  const progCol = document.getElementById('progTasks');
+  const revCol = document.getElementById('revTasks');
+  const compCol = document.getElementById('compTasks');
 
-  // Clear columns
-  Object.values(cols).forEach(c => { if(c) c.innerHTML = ''; });
+  if (!todoCol || !progCol || !revCol || !compCol) return;
 
-  tasksList.forEach(task => {
-    const cardHtml = `
-      <div class="task-card" onclick="advanceTaskStatus('${task.id}')">
-        <h5>${task.title}</h5>
-        <p>${task.desc}</p>
-        <div class="task-meta">
-          <span class="priority-pill priority-${task.priority}">${task.priority}</span>
-          <span>👤 ${task.assignee}</span>
-        </div>
-      </div>
-    `;
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) throw new Error("No active session.");
 
-    if (cols[task.col]) {
-      cols[task.col].insertAdjacentHTML('beforeend', cardHtml);
+    const { data: tasks, error } = await supabase.from('tasks').select('*');
+    if (error) throw error;
+    
+    todoCol.innerHTML = '';
+    progCol.innerHTML = '';
+    revCol.innerHTML = '';
+    compCol.innerHTML = '';
+
+    if (!tasks || tasks.length === 0) {
+      todoCol.innerHTML = '<p class="text-muted small">No tasks</p>';
+      return;
     }
-  });
+
+    tasks.forEach(t => {
+      let badge = 'badge-primary';
+      if(t.priority === 'urgent') badge = 'badge-danger';
+      if(t.priority === 'high') badge = 'badge-warning';
+
+      const html = `
+        <div class="kanban-card" draggable="true" data-id="${t.id}">
+          <div class="d-flex justify-content-between mb-2">
+            <span class="badge ${badge}">${t.priority}</span>
+            <span class="text-muted small">${t.id}</span>
+          </div>
+          <h6 class="mb-1">${t.task_title}</h6>
+          <p class="text-muted small mb-2">${t.description}</p>
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="text-primary small fw-bold"><i data-lucide="user" class="me-1"></i> ${t.assignee_id || 'Unassigned'}</div>
+          </div>
+        </div>
+      `;
+
+      if (t.status === 'todo') todoCol.innerHTML += html;
+      else if (t.status === 'in_progress') progCol.innerHTML += html;
+      else if (t.status === 'review') revCol.innerHTML += html;
+      else if (t.status === 'completed') compCol.innerHTML += html;
+      else todoCol.innerHTML += html; // Default
+    });
+
+  } catch (err) {
+    console.error("Supabase RLS/Fetch Error [tasks]:", err);
+    todoCol.innerHTML = `<div class="text-danger small"><i data-lucide="shield-alert"></i> Access Denied</div>`;
+  }
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
+
 
 /**
  * Advance Task Status on Click
@@ -429,36 +442,45 @@ function advanceTaskStatus(taskId) {
 /**
  * Render Leave Requests Table
  */
-function renderLeavesTable() {
+
+async function renderLeavesTable() {
   const tbody = document.getElementById('leaveTableBody');
   if (!tbody) return;
 
-  tbody.innerHTML = leavesList.map(item => `
-    <tr>
-      <td><strong>${item.name}</strong></td>
-      <td>${item.type}</td>
-      <td>${item.dates}</td>
-      <td>${item.reason}</td>
-      <td>
-        <span class="badge-status badge-${item.status.toLowerCase() === 'approved' ? 'active' : item.status.toLowerCase() === 'pending' ? 'onhold' : 'delayed'}">
-          ${item.status}
-        </span>
-      </td>
-      <td>
-        ${item.status === 'Pending' ? `
-          <button class="btn-icon-action btn-approve" onclick="updateLeaveStatus('${item.id}', 'Approved')" title="Approve">
-            <i data-lucide="check" size="14"></i>
-          </button>
-          <button class="btn-icon-action btn-reject" onclick="updateLeaveStatus('${item.id}', 'Rejected')" title="Reject">
-            <i data-lucide="x" size="14"></i>
-          </button>
-        ` : '—'}
-      </td>
-    </tr>
-  `).join('');
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) throw new Error("No active session.");
 
-  if (typeof lucide !== 'undefined') lucide.createIcons();
+    const { data: leaves, error } = await supabase.from('leave_requests').select('*');
+    if (error) throw error;
+    
+    if (!leaves || leaves.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No leave requests available.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = leaves.map(l => {
+      const statusClass = l.status === 'Approved' ? 'status-active' : (l.status === 'Rejected' ? 'status-inactive' : 'status-pending');
+      return `
+        <tr>
+          <td><strong>${l.employee_id}</strong></td>
+          <td>${l.type}</td>
+          <td>${l.start_date} to ${l.end_date}</td>
+          <td>${l.reason}</td>
+          <td><span class="status-badge ${statusClass}">${l.status}</span></td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error("Supabase RLS/Fetch Error [leaves]:", err);
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger"><i data-lucide="shield-alert"></i> Access Denied / Data Unavailable</td></tr>`;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
 }
+
 
 function updateLeaveStatus(leaveId, newStatus) {
   const leave = leavesList.find(l => l.id === leaveId);
@@ -471,72 +493,95 @@ function updateLeaveStatus(leaveId, newStatus) {
 /**
  * Render Salary Table
  */
-function renderSalariesTable() {
+
+async function renderSalariesTable() {
   const tbody = document.getElementById('salaryTableBody');
   if (!tbody) return;
 
-  const salaries = [
-    { name: "Vignesh", basic: 150000, bonus: 25000, ded: 5000, status: "Paid" },
-    { name: "Jashwin", basic: 120000, bonus: 15000, ded: 3000, status: "Paid" },
-    { name: "Dharshan J M", basic: 120000, bonus: 15000, ded: 3000, status: "Paid" },
-    { name: "Muhammed Arshiya", basic: 95000, bonus: 10000, ded: 2000, status: "Paid" },
-    { name: "Muhammed Zarif", basic: 95000, bonus: 10000, ded: 2000, status: "Paid" },
-    { name: "Asthamil", basic: 75000, bonus: 5000, ded: 1000, status: "Processing" },
-    { name: "Tharun Krishna", basic: 70000, bonus: 6000, ded: 1000, status: "Paid" },
-    { name: "Rohit V", basic: 75000, bonus: 8000, ded: 1500, status: "Paid" },
-    { name: "Thivan S", basic: 75000, bonus: 7500, ded: 1500, status: "Paid" },
-    { name: "Anzarutheen", basic: 70000, bonus: 5000, ded: 1000, status: "Paid" },
-    { name: "Akshaya B S", basic: 60000, bonus: 4000, ded: 1000, status: "Paid" },
-    { name: "Linciya", basic: 65000, bonus: 5000, ded: 1000, status: "Paid" }
-  ];
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) throw new Error("No active session.");
 
-  tbody.innerHTML = salaries.map(s => {
-    const net = s.basic + s.bonus - s.ded;
-    return `
-      <tr>
-        <td><strong>${s.name}</strong></td>
-        <td>₹ ${s.basic.toLocaleString()}</td>
-        <td>₹ ${s.bonus.toLocaleString()}</td>
-        <td>₹ ${s.ded.toLocaleString()}</td>
-        <td><strong>₹ ${net.toLocaleString()}</strong></td>
-        <td><span class="badge-status badge-${s.status === 'Paid' ? 'active' : 'onhold'}">${s.status}</span></td>
-      </tr>
-    `;
-  }).join('');
+    const { data: salaries, error } = await supabase.from('salaries').select('*');
+    if (error) throw error;
+    
+    if (!salaries || salaries.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No salary data available.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = salaries.map(s => {
+      const net = (s.basic_salary || 0) + (s.bonus || 0) - (s.deductions || 0);
+      return `
+        <tr>
+          <td><strong>${s.employee_id}</strong></td>
+          <td>₹ ${(s.basic_salary || 0).toLocaleString()}</td>
+          <td>₹ ${(s.bonus || 0).toLocaleString()}</td>
+          <td>₹ ${(s.deductions || 0).toLocaleString()}</td>
+          <td><span class="status-badge ${s.status === 'Paid' ? 'status-active' : 'status-pending'}">${s.status || 'Pending'}</span></td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error("Supabase RLS/Fetch Error [salaries]:", err);
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger"><i data-lucide="shield-alert"></i> Access Denied / Data Unavailable</td></tr>`;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
 }
+
 
 /**
  * Render Employee Performance Table
  */
-function renderPerformanceTable() {
-  const tbody = document.getElementById('performanceTableBody');
+
+async function renderPerformanceTable() {
+  const tbody = document.getElementById('perfTableBody');
   if (!tbody) return;
 
-  const performance = [
-    { name: "Vignesh", completed: 24, onTime: "99%", score: 98, rating: "Excellent" },
-    { name: "Jashwin", completed: 22, onTime: "98%", score: 97, rating: "Excellent" },
-    { name: "Dharshan J M", completed: 20, onTime: "98%", score: 96, rating: "Excellent" },
-    { name: "Muhammed Arshiya", completed: 18, onTime: "96%", score: 94, rating: "Excellent" },
-    { name: "Muhammed Zarif", completed: 17, onTime: "95%", score: 93, rating: "Excellent" },
-    { name: "Asthamil", completed: 15, onTime: "94%", score: 91, rating: "Excellent" },
-    { name: "Tharun Krishna", completed: 16, onTime: "96%", score: 93, rating: "Excellent" },
-    { name: "Rohit V", completed: 14, onTime: "92%", score: 89, rating: "Good" },
-    { name: "Thivan S", completed: 14, onTime: "91%", score: 88, rating: "Good" },
-    { name: "Anzarutheen", completed: 13, onTime: "90%", score: 87, rating: "Good" },
-    { name: "Akshaya B S", completed: 12, onTime: "90%", score: 86, rating: "Good" },
-    { name: "Linciya", completed: 12, onTime: "89%", score: 85, rating: "Good" }
-  ];
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) throw new Error("No active session.");
 
-  tbody.innerHTML = performance.map(p => `
-    <tr>
-      <td><strong>${p.name}</strong></td>
-      <td>${p.completed} Tasks</td>
-      <td>${p.onTime}</td>
-      <td><strong>${p.score} / 100</strong></td>
-      <td><span class="badge-status badge-${p.rating === 'Excellent' ? 'active' : 'planning'}">${p.rating}</span></td>
-    </tr>
-  `).join('');
+    const { data: reviews, error } = await supabase.from('performance_reviews').select('*');
+    if (error) throw error;
+    
+    if (!reviews || reviews.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No performance data available.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = reviews.map(r => {
+      const isTop = r.score >= 4.5;
+      return `
+        <tr>
+          <td><strong>${r.employee_id}</strong></td>
+          <td>${r.review_date || 'N/A'}</td>
+          <td>
+            <div class="rating-stars">
+              ${Array(Math.floor(r.score)).fill('<i data-lucide="star" class="text-warning"></i>').join('')}
+              ${r.score % 1 !== 0 ? '<i data-lucide="star-half" class="text-warning"></i>' : ''}
+              <span class="ms-1 fw-bold">${r.score}</span>
+            </div>
+          </td>
+          <td>${r.comments || ''}</td>
+          <td>${isTop ? '<span class="status-badge status-active">Top Performer</span>' : '<span class="status-badge status-pending">Average</span>'}</td>
+          <td><button class="btn btn-sm btn-outline-secondary">Review</button></td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error("Supabase RLS/Fetch Error [performance]:", err);
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger"><i data-lucide="shield-alert"></i> Access Denied / Data Unavailable</td></tr>`;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
 }
+
 
 /**
  * Edit Employee Action Handler
@@ -889,36 +934,31 @@ window.populateProjectModalOptions = populateProjectModalOptions;
 /**
  * Update Dashboard Stat Cards dynamically
  */
-function updateDashboardStatCards() {
-  const statTotalEmployees = document.getElementById('statTotalEmployees');
-  if (statTotalEmployees && Array.isArray(employeesList)) {
-    statTotalEmployees.textContent = employeesList.length;
-  }
 
-  const statPresentToday = document.getElementById('statPresentToday');
-  if (statPresentToday && Array.isArray(employeesList)) {
-    const activeEmps = employeesList.filter(e => e.status === 'active').length;
-    statPresentToday.textContent = Math.min(activeEmps, 11);
-  }
+async function updateDashboardStatCards() {
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) return;
 
-  const statActiveProjects = document.getElementById('statActiveProjects');
-  if (statActiveProjects && Array.isArray(projectsList)) {
-    const activeProjectsCount = projectsList.filter(p => p.status === 'active').length;
-    statActiveProjects.textContent = String(activeProjectsCount).padStart(2, '0');
-  }
-
-  const statPendingTasks = document.getElementById('statPendingTasks');
-  if (statPendingTasks && Array.isArray(tasksList)) {
-    const pendingCount = tasksList.filter(t => t.col !== 'completed').length;
-    statPendingTasks.textContent = String(pendingCount).padStart(2, '0');
-  }
-
-  const statCompletedTasks = document.getElementById('statCompletedTasks');
-  if (statCompletedTasks && Array.isArray(tasksList)) {
-    const completedCount = tasksList.filter(t => t.col === 'completed').length + 45;
-    statCompletedTasks.textContent = completedCount;
+    // We can fetch analytics_metrics table or just display counts.
+    // Assuming simple counts via RLS for demo if needed, but since it's a UI update, let's gracefully fail if RLS rejects
+    const { count: empCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+    const { count: prjCount } = await supabase.from('projects').select('*', { count: 'exact', head: true });
+    
+    const empElem = document.getElementById('statTotalEmployees');
+    const prjElem = document.getElementById('statActiveProjects');
+    
+    if (empElem && empCount !== null) empElem.textContent = empCount;
+    if (prjElem && prjCount !== null) prjElem.textContent = prjCount;
+    
+  } catch (err) {
+    console.error("Supabase RLS/Fetch Error [stats]:", err);
   }
 }
+
 
 /**
  * Toast Notification Alert Helper
