@@ -724,3 +724,355 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Desktop CSS Grid */
+body.dashboard-body {
+    display: grid !important;
+    grid-template-columns: 250px 1fr !important;
+    align-items: start;
+    height: 100vh;
+    overflow: hidden;
+    padding: 0 !important;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* =========================================================
+   BENTO BOX WIDGET GRID
+   ========================================================= */
+
+.bento-grid {
+  display: grid;
+  gap: var(--spacing-md);
+  /* Auto-fits columns ensuring they are at least 200px wide */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  width: 100%;
+  margin-bottom: var(--spacing-xl);
+}
+
+/* Base Bento Card */
+.bento-card {
+  background: var(--card-glass-bg);
+  border: 1px solid var(--card-glass-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.bento-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Wide Card Modifier */
+.bento-card-wide {
+  grid-column: span 2;
+}
+
+/* Drop wide cards to single column on small mobile screens */
+@media (max-width: 600px) {
+  .bento-card-wide {
+    grid-column: span 1;
+  }
+}
+
+/* Typography for Widgets */
+.bento-title {
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bento-stat {
+  font-family: var(--font-fuzzy);
+  font-size: 3.25rem;
+  font-weight: 800;
+  color: var(--text-white);
+  line-height: 1;
+  margin-bottom: var(--spacing-xs);
+}
+
+.bento-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Minimalist Progress Bar */
+.bento-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-pill);
+  margin-top: var(--spacing-md);
+  overflow: hidden;
+}
+
+.bento-progress-fill {
+  height: 100%;
+  background: var(--blue-primary); /* Uses Employee Panel Blue */
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 10px var(--blue-glow);
+  transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+
+/* =========================================================
+   KANBAN BOARD MODULE
+   ========================================================= */
+
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  width: 100%;
+  margin-top: var(--spacing-md);
+}
+
+@media (max-width: 1024px) {
+  .kanban-board {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    padding-bottom: var(--spacing-sm);
+  }
+  .kanban-column {
+    min-width: 280px;
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+}
+
+.kanban-column {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-md);
+  gap: var(--spacing-sm);
+  min-height: 400px;
+}
+
+.kanban-column-header {
+  position: sticky;
+  top: 0;
+  background: transparent;
+  padding-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-white);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  z-index: 2;
+}
+
+/* Kanban Cards (based on Bento aesthetic) */
+.kanban-card {
+  background: var(--card-glass-bg);
+  border: 1px solid var(--card-glass-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.kanban-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.kanban-card:active {
+  cursor: grabbing;
+}
+
+.kanban-task-title {
+  font-weight: 600;
+  color: var(--text-white);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.kanban-task-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: var(--spacing-xs);
+}
+
+/* Priority Badges */
+.badge-priority {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  align-self: flex-start;
+}
+
+.badge-priority.high {
+  background: rgba(244, 63, 94, 0.15); /* var(--danger-bg) */
+  color: var(--rose-danger);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.badge-priority.medium {
+  background: rgba(245, 158, 11, 0.15); /* var(--warning-bg) */
+  color: var(--amber-warning);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-priority.low {
+  background: rgba(37, 99, 235, 0.15); /* var(--employee-badge-bg) */
+  color: var(--blue-primary);
+  border: 1px solid rgba(37, 99, 235, 0.3);
+}
+
+.kanban-card.is-dragging {
+  opacity: 0.5;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  transform: scale(1.02);
+}
+
+/* =========================================================
+   GLASSMORPHISM MODAL
+   ========================================================= */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast) ease-in-out;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-glass {
+  background: var(--card-glass-bg);
+  border: 1px solid var(--card-glass-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  transform: translateY(20px);
+  transition: transform var(--transition-fast) ease-in-out;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.modal-overlay.active .modal-glass {
+  transform: translateY(0);
+}
+
+.modal-glass h3 {
+  color: var(--text-white);
+  margin-top: 0;
+  margin-bottom: var(--spacing-xs);
+  font-size: 1.25rem;
+}
+
+/* Glass Inputs */
+.input-glass {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--card-glass-border);
+  border-radius: var(--radius-md);
+  padding: 0.8rem 1rem;
+  color: var(--text-white);
+  font-family: inherit;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.input-glass:focus {
+  border-color: var(--blue-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.input-glass::placeholder {
+  color: var(--text-muted);
+}
+
+.modal-glass select.input-glass {
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="%23a1a1aa" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+}
+
+.modal-glass select.input-glass option {
+  background: #1a1a1a;
+  color: var(--text-white);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.btn-glass-cancel {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.btn-glass-cancel:hover {
+  color: var(--text-white);
+  background: rgba(255, 255, 255, 0.05);
+}

@@ -21,7 +21,7 @@
   <link rel="stylesheet" href="css/employee-panel.css">
   <link rel="manifest" href="/manifest.json">
 </head>
-<body>
+<body class="dashboard-body">
 
   <!-- Left Sidebar Navigation -->
   <aside class="sidebar" id="sidebar">
@@ -197,6 +197,69 @@
         </button>
       </div>
 
+      <!-- BENTO BOX WIDGETS -->
+      <div class="bento-grid">
+        
+        <!-- 1. Stat Card: Total Hours -->
+        <div class="bento-card">
+          <div class="bento-header">
+            <h3 class="bento-title">
+              <i data-lucide="clock" width="16" height="16"></i> 
+              Total Hours
+            </h3>
+          </div>
+          <div class="bento-body">
+            <div class="bento-stat" id="bento-total-hours">0<span style="font-size: 1.5rem; color: var(--text-muted);">.0</span></div>
+            <div class="bento-desc">Logged this month</div>
+          </div>
+        </div>
+
+        <!-- 2. Progress Card: Task Completion -->
+        <div class="bento-card">
+          <div class="bento-header">
+            <h3 class="bento-title">
+              <i data-lucide="check-circle" width="16" height="16"></i> 
+              Task Completion
+            </h3>
+          </div>
+          <div class="bento-body">
+            <div class="bento-stat" id="bento-task-percent">0%</div>
+            <div class="bento-desc" id="bento-task-desc">0 of 0 tasks completed</div>
+            
+            <!-- CSS Progress Bar -->
+            <div class="bento-progress-track">
+              <div class="bento-progress-fill" id="bento-progress-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Wide Card: Kanban Summary -->
+        <div class="bento-card bento-card-wide">
+          <div class="bento-header">
+            <h3 class="bento-title">
+              <i data-lucide="layout-dashboard" width="16" height="16"></i> 
+              Current Sprint Summary
+            </h3>
+          </div>
+          <div class="bento-body">
+            <p style="color: var(--text-sub); font-size: 0.95rem; line-height: 1.6;">
+              You have <strong style="color: var(--text-white);">4</strong> tasks remaining in the active sprint. 
+              Your next priority deadline is the <strong>UI/UX Overhaul</strong> project, due in <span style="color: var(--amber-warning);">3 days</span>.
+            </p>
+            
+            <div style="margin-top: var(--spacing-md); display: flex; gap: var(--spacing-sm);">
+              <button class="btn-submit btn-submit-employee" style="width: auto; padding: 0.6rem 1.2rem; font-size: 0.8rem;">
+                View Kanban Board
+              </button>
+              <button onclick="openNewTaskModal()" class="btn-submit" style="width: auto; padding: 0.6rem 1.2rem; font-size: 0.8rem; background: var(--blue-primary);">
+                + New Task
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
       <!-- Quick Attendance Action Widget -->
       <div class="attendance-widget-box">
         <div>
@@ -327,8 +390,47 @@
           <p>Manage task progress and submit work for administrator review.</p>
         </div>
       </div>
-      <div class="panel-card">
-        <div id="myTasksContainerFull"></div>
+      <div class="kanban-board" id="myTasksContainerFull">
+        
+        <!-- To Do Column -->
+        <div class="kanban-column" id="kanban-todo">
+          <div class="kanban-column-header">To Do</div>
+          
+          <!-- Sample Card 1 -->
+          <div class="kanban-card">
+            <span class="badge-priority medium">Medium</span>
+            <div class="kanban-task-title">Review UI mockups</div>
+            <div class="kanban-task-desc">Review the latest Figma designs for the dashboard and provide feedback.</div>
+          </div>
+          
+        </div>
+        
+        <!-- In Progress Column -->
+        <div class="kanban-column" id="kanban-inprogress">
+          <div class="kanban-column-header">In Progress</div>
+          
+          <!-- Sample Card 2 -->
+          <div class="kanban-card">
+            <span class="badge-priority high">High</span>
+            <div class="kanban-task-title">Implement Kanban CSS</div>
+            <div class="kanban-task-desc">Build out the CSS grid and responsive logic for the new Kanban module.</div>
+          </div>
+          
+        </div>
+        
+        <!-- Done Column -->
+        <div class="kanban-column" id="kanban-done">
+          <div class="kanban-column-header">Done</div>
+          
+          <!-- Sample Card 3 -->
+          <div class="kanban-card">
+            <span class="badge-priority low">Low</span>
+            <div class="kanban-task-title">Setup PWA Manifest</div>
+            <div class="kanban-task-desc">Add manifest.json and service worker caching strategy.</div>
+          </div>
+          
+        </div>
+        
       </div>
     </section>
 
@@ -368,7 +470,8 @@
         <h3>Work Log History</h3>
         <div style="overflow-x:auto; margin-top:1rem;">
           <div class=\"table-responsive\">
-          <table class="custom-table">
+          <div class="table-responsive" style="overflow-x: auto;">
+<table class="custom-table">
             <thead>
               <tr>
                 <th>Work Summary</th>
@@ -379,6 +482,7 @@
             </thead>
             <tbody id="workLogTableBody"></tbody>
           </table>
+</div>
         </div>
         </div>
       </div>
@@ -399,7 +503,8 @@
         <h3>Monthly Attendance History</h3>
         <div style="overflow-x:auto; margin-top:1rem;">
           <div class=\"table-responsive\">
-          <table class="custom-table">
+          <div class="table-responsive" style="overflow-x: auto;">
+<table class="custom-table">
             <thead>
               <tr>
                 <th>Date</th>
@@ -433,6 +538,7 @@
               </tr>
             </tbody>
           </table>
+</div>
         </div>
         </div>
       </div>
@@ -484,7 +590,8 @@
         <h3>My Leave Application History</h3>
         <div style="overflow-x:auto; margin-top:1rem;">
           <div class=\"table-responsive\">
-          <table class="custom-table">
+          <div class="table-responsive" style="overflow-x: auto;">
+<table class="custom-table">
             <thead>
               <tr>
                 <th>Type</th>
@@ -496,6 +603,7 @@
             </thead>
             <tbody id="leaveTableBody"></tbody>
           </table>
+</div>
         </div>
         </div>
       </div>
@@ -681,6 +789,36 @@
   <!-- Scripts -->
   <script src="js/supabase.js"></script>
   <script src="js/auth.js"></script>
+  <!-- ========================================================= -->
+  <!-- KANBAN NEW TASK MODAL -->
+  <!-- ========================================================= -->
+  <div class="modal-overlay" id="newTaskModal">
+    <div class="modal-glass">
+      <h3>Create New Task</h3>
+      <form id="newTaskForm">
+        <div class="form-group" style="margin-bottom: var(--spacing-sm);">
+          <input type="text" id="newTaskTitle" class="input-glass" placeholder="Task Title" required>
+        </div>
+        <div class="form-group" style="margin-bottom: var(--spacing-sm);">
+          <textarea id="newTaskDesc" class="input-glass" placeholder="Task Description..." rows="3"></textarea>
+        </div>
+        <div class="form-group" style="margin-bottom: var(--spacing-sm);">
+          <select id="newTaskPriority" class="input-glass" required>
+            <option value="" disabled selected>Select Priority...</option>
+            <option value="High">High Priority</option>
+            <option value="Medium">Medium Priority</option>
+            <option value="Low">Low Priority</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-glass-cancel" onclick="closeNewTaskModal()">Cancel</button>
+          <button type="submit" class="btn-submit" style="width: auto; padding: 0.6rem 1.5rem;">Create Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
   <script src="js/employee-panel.js"></script>
 
 </body>

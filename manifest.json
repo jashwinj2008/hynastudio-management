@@ -1,22 +1,21 @@
 {
-  "name": "HYNAOS - Hyna Studio Management System",
-  "short_name": "HYNAOS",
-  "description": "Run Hyna Studio from one place. Internal management portal for admins and employees.",
-  "start_url": "/index.html",
+  "name": "Hyna Studio Management",
+  "short_name": "HynaOS",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#120608",
   "theme_color": "#b91c1c",
-  "orientation": "portrait",
+  "description": "Internal workspace and dashboard for Hyna Studio.",
   "icons": [
     {
-      "src": "/assets/logo/hynaos-logo.jpeg",
+      "src": "/assets/branding/logo-192.png",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/png"
     },
     {
-      "src": "/assets/logo/hynaos-logo.jpeg",
+      "src": "/assets/branding/logo-512.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png"
     }
   ]
 }

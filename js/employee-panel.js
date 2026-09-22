@@ -1,164 +1,13 @@
-// Logged In Employee Personal Scoped Profile (Default fallback)
-let CURRENT_EMPLOYEE = {
-  id: "EMP-008",
-  name: "Rohit V",
-  email: "rohit@hynastudio.com",
-  role: "employee",
-  position: "Full Stack Developer",
-  department: "Engineering",
-  joiningDate: "2024-03-10",
-  phone: "+91 98765 43210",
-  status: "active",
-  initials: "RV"
-};
+let CURRENT_EMPLOYEE = null;
 
-// Dynamically Load User Profile from Session / LocalStorage
-function loadUserFromStorage() {
-  try {
-    const stored = localStorage.getItem('hynaos_current_user');
-    if (stored) {
-      const u = JSON.parse(stored);
-      const name = u.full_name || u.name || "Employee";
-      const parts = name.trim().split(' ').filter(Boolean);
-      let initials = "HE";
-      if (parts.length > 1) {
-        initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-      } else if (parts[0]) {
-        initials = parts[0].substring(0, 2).toUpperCase();
-      }
 
-      const empId = u.employee_id || u.id || "EMP-008";
-      const savedAvatar = localStorage.getItem('hynaos_profile_avatar_' + empId) || u.avatar_url || u.avatar || null;
 
-      CURRENT_EMPLOYEE = {
-        id: empId,
-        name: name,
-        email: u.email || "",
-        role: u.role || "employee",
-        position: u.position || "Team Member",
-        department: u.department || "Hyna Studio",
-        joiningDate: u.joining_date || u.joiningDate || "2024-03-10",
-        phone: u.phone || "+91 98765 43210",
-        status: u.status || "active",
-        initials: initials,
-        avatarUrl: savedAvatar
-      };
-    }
-  } catch(e) {
-    console.warn("Failed to parse stored user profile:", e);
-  }
 
-  // Also check if profile was updated by admin in hynaos_employees_list
-  try {
-    const empListStr = localStorage.getItem('hynaos_employees_list');
-    if (empListStr) {
-      const list = JSON.parse(empListStr);
-      const match = list.find(e => e.id === CURRENT_EMPLOYEE.id || (e.email && e.email.toLowerCase() === CURRENT_EMPLOYEE.email.toLowerCase()));
-      if (match) {
-        CURRENT_EMPLOYEE.name = match.name || CURRENT_EMPLOYEE.name;
-        CURRENT_EMPLOYEE.email = match.email || CURRENT_EMPLOYEE.email;
-        CURRENT_EMPLOYEE.position = match.position || CURRENT_EMPLOYEE.position;
-        CURRENT_EMPLOYEE.department = match.department || CURRENT_EMPLOYEE.department;
-        CURRENT_EMPLOYEE.status = match.status || CURRENT_EMPLOYEE.status;
-        if (match.phone) CURRENT_EMPLOYEE.phone = match.phone;
+let myTasksList = [];
 
-        const parts = CURRENT_EMPLOYEE.name.trim().split(' ').filter(Boolean);
-        if (parts.length > 1) {
-          CURRENT_EMPLOYEE.initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-        } else if (parts[0]) {
-          CURRENT_EMPLOYEE.initials = parts[0].substring(0, 2).toUpperCase();
-        }
-      }
-    }
-  } catch(e) {}
-}
+let myWorkLogs = [];
 
-function saveUserToStorage() {
-  try {
-    const stored = localStorage.getItem('hynaos_current_user');
-    let u = stored ? JSON.parse(stored) : {};
-    u.full_name = CURRENT_EMPLOYEE.name;
-    u.name = CURRENT_EMPLOYEE.name;
-    u.email = CURRENT_EMPLOYEE.email;
-    u.position = CURRENT_EMPLOYEE.position;
-    u.department = CURRENT_EMPLOYEE.department;
-    u.phone = CURRENT_EMPLOYEE.phone;
-    if (CURRENT_EMPLOYEE.avatarUrl) u.avatar_url = CURRENT_EMPLOYEE.avatarUrl;
-
-    localStorage.setItem('hynaos_current_user', JSON.stringify(u));
-
-    // Also update in hynaos_employees_list
-    const empListStr = localStorage.getItem('hynaos_employees_list');
-    let list = empListStr ? JSON.parse(empListStr) : [];
-    const idx = list.findIndex(e => e.id === CURRENT_EMPLOYEE.id || (e.email && e.email.toLowerCase() === CURRENT_EMPLOYEE.email.toLowerCase()));
-    if (idx !== -1) {
-      list[idx] = {
-        ...list[idx],
-        name: CURRENT_EMPLOYEE.name,
-        email: CURRENT_EMPLOYEE.email,
-        position: CURRENT_EMPLOYEE.position,
-        department: CURRENT_EMPLOYEE.department,
-        phone: CURRENT_EMPLOYEE.phone
-      };
-      localStorage.setItem('hynaos_employees_list', JSON.stringify(list));
-    }
-  } catch(e) {
-    console.warn("Failed to save user to storage:", e);
-  }
-}
-
-// Scoped Personal Assigned Projects
-const MY_PROJECTS = [
-  { id: "PRJ-101", name: "HYNAOS Core Platform", manager: "Dharshan J M", progress: 85, deadline: "2026-09-30", status: "active" },
-  { id: "PRJ-102", name: "Hyna Studio Rebrand", manager: "Tharun Krishna", progress: 95, deadline: "2026-09-15", status: "active" },
-  { id: "PRJ-105", name: "Mobile Workspace App", manager: "Rohit V", progress: 40, deadline: "2026-11-01", status: "active" }
-];
-
-// Scoped Personal Assigned Tasks
-let myTasksList = [
-  {
-    id: "TSK-03",
-    title: "Kanban Board Drag & Drop",
-    project: "HYNAOS Core Platform",
-    priority: "urgent",
-    deadline: "2026-09-12",
-    status: "In Progress",
-    progress: 75,
-    desc: "Build interactive task movement for Admin & Employee panels."
-  },
-  {
-    id: "TSK-08",
-    title: "Mobile Workspace Navigation",
-    project: "Mobile Workspace App",
-    priority: "high",
-    deadline: "2026-09-20",
-    status: "To Do",
-    progress: 10,
-    desc: "Implement responsive bottom navigation bar for mobile layout."
-  },
-  {
-    id: "TSK-09",
-    title: "Supabase Client Error Handling",
-    project: "HYNAOS Core Platform",
-    priority: "medium",
-    deadline: "2026-09-14",
-    status: "Review",
-    progress: 90,
-    desc: "Wrap auth exceptions and present clean toast alerts."
-  }
-];
-
-// Scoped Personal Work Logs
-let myWorkLogs = [
-  { id: "WLOG-1", title: "Configured Employee Panel Security Scoping", project: "HYNAOS Core Platform", task: "Security Validation", date: "Today, 10:30 AM", status: "Submitted for Review" },
-  { id: "WLOG-2", title: "Built Check-In Attendance Counter", project: "HYNAOS Core Platform", task: "Attendance Module", date: "Yesterday, 04:45 PM", status: "Approved" }
-];
-
-// Scoped Personal Leave Requests
-let myLeaveRequests = [
-  { id: "LV-1", type: "Sick Leave", dates: "Sep 10 - Sep 11", reason: "Medical Appointment", status: "Pending", comments: "Awaiting HR review" },
-  { id: "LV-4", type: "Casual Leave", dates: "Aug 05 - Aug 06", reason: "Personal Work", status: "Approved", comments: "Approved by Asthamil" }
-];
+let myLeaveRequests = [];
 
 // Scoped Personal Attendance State
 let attendanceState = {
@@ -169,48 +18,52 @@ let attendanceState = {
   timerInterval: null
 };
 
-function loadEmployeeDataFromStorage() {
-  const empId = CURRENT_EMPLOYEE.id || "EMP-008";
-  
-  // 1. Tasks
-  try {
-    const savedTasks = localStorage.getItem(`hynaos_tasks_${empId}`);
-    if (savedTasks) {
-      myTasksList = JSON.parse(savedTasks);
-    }
-  } catch(e) {}
 
-  // 2. Work Logs
-  try {
-    const savedLogs = localStorage.getItem(`hynaos_worklogs_${empId}`);
-    if (savedLogs) {
-      myWorkLogs = JSON.parse(savedLogs);
-    }
-  } catch(e) {}
 
-  // 3. Leave Requests
+
+async function initializeEmployeeSession() {
   try {
-    const savedLeaves = localStorage.getItem(`hynaos_leaves_${empId}`);
-    if (savedLeaves) {
-      myLeaveRequests = JSON.parse(savedLeaves);
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      window.location.href = 'employee-login.html';
+      return;
     }
-  } catch(e) {}
+    const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+    if (error) throw error;
+    
+    if (profile) {
+      const parts = (profile.full_name || "Employee").trim().split(' ').filter(Boolean);
+      let initials = "HE";
+      if (parts.length > 1) {
+        initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      } else if (parts[0]) {
+        initials = parts[0].substring(0, 2).toUpperCase();
+      }
+      
+      CURRENT_EMPLOYEE = {
+        id: profile.employee_id || profile.id,
+        uid: profile.id,
+        name: profile.full_name,
+        email: profile.email,
+        role: profile.role,
+        position: profile.position,
+        department: profile.department,
+        joiningDate: profile.joined_at,
+        phone: profile.phone || "",
+        status: profile.status,
+        initials: initials,
+        avatarUrl: profile.avatar_url || null
+      };
+    }
+  } catch (err) {
+    console.error("Session initialization failed:", err);
+  }
 }
-
-function saveEmployeeDataToStorage() {
-  const empId = CURRENT_EMPLOYEE.id || "EMP-008";
-  try {
-    localStorage.setItem(`hynaos_tasks_${empId}`, JSON.stringify(myTasksList));
-    localStorage.setItem(`hynaos_worklogs_${empId}`, JSON.stringify(myWorkLogs));
-    localStorage.setItem(`hynaos_leaves_${empId}`, JSON.stringify(myLeaveRequests));
-  } catch(e) {}
-}
-
 // Page Lifecycle Initialization
 document.addEventListener('DOMContentLoaded', async () => {
-  // 0. Load Dynamic Logged In User Profile
-  loadUserFromStorage();
-  loadEmployeeDataFromStorage();
+  await initializeEmployeeSession();
 
   // 1. Verify Employee Access Security
   await verifyEmployeeAccess();
@@ -415,6 +268,9 @@ async function renderMyTasks() {
 
     const { data: tasks, error } = await supabase.from('tasks').select('*').eq('assignee_id', fullName);
     if (error) throw error;
+    
+    myTasksList = tasks;
+
 
     container.innerHTML = '';
     
@@ -469,23 +325,6 @@ function submitTaskForReview(taskId) {
   alert('Task submitted for Administrator Review successfully!');
 }
 
-function loadAllProjects() {
-  try {
-    const stored = localStorage.getItem('hynaos_projects_list');
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch(e) {
-    console.warn("Failed to load projects from storage:", e);
-  }
-  return [
-    { id: "PRJ-101", name: "HYNAOS Core Platform", manager: "Dharshan J M", lead: "Dharshan J M", assignedMembers: ["Dharshan J M", "Rohit V", "Thivan", "Anzarutheen"], progress: 85, deadline: "2026-09-30", status: "active", description: "Core enterprise platform for Hyna Studio." },
-    { id: "PRJ-102", name: "Hyna Studio Rebrand", manager: "Tharun Krishna", lead: "Tharun Krishna", assignedMembers: ["Tharun Krishna", "Linciya", "Mohamed Arshiya"], progress: 95, deadline: "2026-09-15", status: "active", description: "Visual identity design update and brand system." },
-    { id: "PRJ-103", name: "Growth Engine & CRM", manager: "Muhammed Zarif", lead: "Muhammed Zarif", assignedMembers: ["Muhammed Zarif", "Linciya", "New Appointment"], progress: 60, deadline: "2026-10-15", status: "active", description: "Generative AI marketing copy suite." },
-    { id: "PRJ-104", name: "Product Design System", manager: "Mohamed Arshiya", lead: "Mohamed Arshiya", assignedMembers: ["Mohamed Arshiya", "Tharun Krishna"], progress: 100, deadline: "2026-08-30", status: "completed", description: "Design token library and Web UI assets." },
-    { id: "PRJ-105", name: "Mobile Workspace App", manager: "Rohit V", lead: "Rohit V", assignedMembers: ["Rohit V", "Akshaya", "Thivan"], progress: 40, deadline: "2026-11-01", status: "active", description: "Mobile application for field attendance and tasks." }
-  ];
-}
 
 /**
  * Render Scoped Assigned Projects
@@ -558,6 +397,9 @@ async function renderMyWorkLogs() {
 
     const { data: logs, error } = await supabase.from('work_logs').select('*');
     if (error) throw error;
+    
+    myWorkLogs = logs;
+
 
     if (!logs || logs.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No work logs found.</td></tr>';
@@ -600,6 +442,9 @@ async function renderMyLeaves() {
 
     const { data: leaves, error } = await supabase.from('leave_requests').select('*');
     if (error) throw error;
+    
+    myLeaveRequests = leaves;
+
 
     if (!leaves || leaves.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No leave requests found.</td></tr>';
@@ -677,18 +522,14 @@ function handleProfileImageUpload(event) {
     const dataUrl = e.target.result;
     CURRENT_EMPLOYEE.avatarUrl = dataUrl;
 
-    // Persist in localStorage
+    // Update in Supabase
     try {
-      localStorage.setItem('hynaos_profile_avatar_' + CURRENT_EMPLOYEE.id, dataUrl);
-      
-      const stored = localStorage.getItem('hynaos_current_user');
-      if (stored) {
-        const u = JSON.parse(stored);
-        u.avatar_url = dataUrl;
-        localStorage.setItem('hynaos_current_user', JSON.stringify(u));
+      const supabase = window.HYNAOS_SUPABASE.getClient();
+      if (supabase) {
+        supabase.from('profiles').update({ avatar_url: dataUrl }).eq('id', CURRENT_EMPLOYEE.uid).then();
       }
-    } catch(err) {
-      console.warn('Could not save avatar to localStorage:', err);
+    } catch (err) {
+      console.warn('Could not save avatar to Supabase:', err);
     }
 
     renderMyProfile();
@@ -711,16 +552,12 @@ function removeProfileImage() {
   CURRENT_EMPLOYEE.avatarUrl = null;
 
   try {
-    localStorage.removeItem('hynaos_profile_avatar_' + CURRENT_EMPLOYEE.id);
-    
-    const stored = localStorage.getItem('hynaos_current_user');
-    if (stored) {
-      const u = JSON.parse(stored);
-      delete u.avatar_url;
-      localStorage.setItem('hynaos_current_user', JSON.stringify(u));
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (supabase) {
+      supabase.from('profiles').update({ avatar_url: null }).eq('id', CURRENT_EMPLOYEE.uid).then();
     }
-  } catch(err) {
-    console.warn('Could not remove avatar from localStorage:', err);
+  } catch (err) {
+    console.warn('Could not remove avatar from Supabase:', err);
   }
 
   const fileInput = document.getElementById('profileImageInput');
@@ -886,7 +723,20 @@ function saveSelfProfile(e) {
     initials: initials
   };
 
-  saveUserToStorage();
+    try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (supabase) {
+      supabase.from('profiles').update({
+        full_name: newName,
+        email: newEmail,
+        phone: newPhone,
+        department: newDept,
+        position: newPos
+      }).eq('id', CURRENT_EMPLOYEE.uid).then();
+    }
+  } catch (err) {
+    console.error("Failed to update profile", err);
+  }
   renderMyProfile();
   closeEditSelfModal();
 
@@ -927,6 +777,63 @@ async function updateEmployeeDashboardStatCards() {
   }
 }
 
+/**
+ * FETCH BENTO STATS
+ */
+async function fetchBentoStats() {
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) return;
+    
+    // 1. Total Hours Logged this Month
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    
+    const { data: workLogs } = await supabase
+      .from('work_logs')
+      .select('hours_worked')
+      .gte('date', firstDay);
+
+    if (workLogs) {
+      const totalHours = workLogs.reduce((sum, log) => sum + (parseFloat(log.hours_worked) || 0), 0);
+      const wholeHours = Math.floor(totalHours);
+      const fraction = (totalHours - wholeHours).toFixed(1).substring(1);
+      
+      const hoursEl = document.getElementById('bento-total-hours');
+      if (hoursEl) {
+        hoursEl.innerHTML = `${wholeHours}<span style="font-size: 1.5rem; color: var(--text-muted);">${fraction}</span>`;
+      }
+    }
+
+    // 2. Task Completion Percentage
+    const profileRes = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single();
+    if (profileRes.data) {
+      const { data: tasks } = await supabase
+        .from('tasks')
+        .select('status')
+        .eq('assignee_id', profileRes.data.full_name);
+        
+      if (tasks) {
+        const totalTasks = tasks.length;
+        const doneTasks = tasks.filter(t => t.status === 'Done' || t.status === 'Completed').length;
+        const percent = totalTasks === 0 ? 0 : Math.round((doneTasks / totalTasks) * 100);
+        
+        const percentEl = document.getElementById('bento-task-percent');
+        const descEl = document.getElementById('bento-task-desc');
+        const progressEl = document.getElementById('bento-progress-fill');
+        
+        if (percentEl) percentEl.textContent = `${percent}%`;
+        if (descEl) descEl.textContent = `${doneTasks} of ${totalTasks} tasks completed`;
+        if (progressEl) progressEl.style.width = `${percent}%`;
+      }
+    }
+  } catch (err) {
+    console.error("Supabase RLS/Fetch Error [bento stats]:", err);
+  }
+}
 
 /**
  * Toast Notification Alert Helper
@@ -959,11 +866,10 @@ function refreshAllDashboardData(showToast = true) {
   refreshIcons.forEach(icon => icon.classList.add('spin-icon'));
 
   // 1. Reload User Profile & Projects from Storage
-  loadUserFromStorage();
-  if (typeof loadAllProjects === 'function') loadAllProjects();
-
+    
   // 2. Re-render all view tables and components
   if (typeof renderMyTasks === 'function') renderMyTasks();
+  if (typeof renderKanbanBoard === 'function') renderKanbanBoard();
   if (typeof renderMyProjects === 'function') renderMyProjects();
   if (typeof renderMyWorkLogs === 'function') renderMyWorkLogs();
   if (typeof renderMyLeaves === 'function') renderMyLeaves();
@@ -971,6 +877,7 @@ function refreshAllDashboardData(showToast = true) {
 
   // 3. Update Stat Cards
   updateEmployeeDashboardStatCards();
+  fetchBentoStats();
 
   // 4. Re-initialize Lucide Icons
   if (typeof lucide !== 'undefined') {
@@ -1003,3 +910,206 @@ window.addEventListener('hynaos_projects_updated', () => {
 });
 
 
+
+
+/**
+ * RENDER KANBAN BOARD
+ */
+async function renderKanbanBoard() {
+  const todoCol = document.getElementById('kanban-todo');
+  const inprogCol = document.getElementById('kanban-inprogress');
+  const doneCol = document.getElementById('kanban-done');
+  
+  if (!todoCol || !inprogCol || !doneCol) return;
+  
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) throw new Error("No active session.");
+
+    const profileRes = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single();
+    const fullName = profileRes.data ? profileRes.data.full_name : '';
+
+    const { data: tasks, error } = await supabase.from('tasks').select('*').eq('assignee_id', fullName);
+    if (error) throw error;
+    
+    // Clear columns (preserve headers)
+    todoCol.innerHTML = '<div class="kanban-column-header">To Do</div>';
+    inprogCol.innerHTML = '<div class="kanban-column-header">In Progress</div>';
+    doneCol.innerHTML = '<div class="kanban-column-header">Done</div>';
+    
+    if (!tasks || tasks.length === 0) return;
+    
+    tasks.forEach(t => {
+      let badgeClass = 'low';
+      let priorityText = 'Low';
+      
+      const prio = (t.priority || '').toLowerCase();
+      if(prio === 'urgent' || prio === 'high') {
+        badgeClass = 'high';
+        priorityText = 'High';
+      } else if (prio === 'medium') {
+        badgeClass = 'medium';
+        priorityText = 'Medium';
+      }
+      
+      const cardHtml = `
+        <div class="kanban-card" draggable="true" data-task-id="${t.id}">
+          <span class="badge-priority ${badgeClass}">${priorityText}</span>
+          <div class="kanban-task-title">${t.title || 'Untitled Task'}</div>
+          <div class="kanban-task-desc">${t.description || ''}</div>
+        </div>
+      `;
+      
+      const status = (t.status || '').toLowerCase();
+      if (status === 'done' || status === 'completed') {
+        doneCol.innerHTML += cardHtml;
+      } else if (status === 'in progress' || status === 'inprogress' || status === 'review') {
+        inprogCol.innerHTML += cardHtml;
+      } else {
+        todoCol.innerHTML += cardHtml;
+      }
+    });
+
+    initializeKanbanDragAndDrop();
+
+
+  } catch (err) {
+    console.error("Supabase Error [Kanban]:", err);
+    const errorHtml = `<div class="kanban-card"><div class="kanban-task-title text-danger" style="color:var(--rose-danger);">Error Loading Tasks</div></div>`;
+    todoCol.innerHTML = '<div class="kanban-column-header">To Do</div>' + errorHtml;
+    inprogCol.innerHTML = '<div class="kanban-column-header">In Progress</div>' + errorHtml;
+    doneCol.innerHTML = '<div class="kanban-column-header">Done</div>' + errorHtml;
+  }
+}
+
+/**
+ * INITIALIZE KANBAN DRAG AND DROP
+ */
+function initializeKanbanDragAndDrop() {
+  const cards = document.querySelectorAll('.kanban-card');
+  const columns = document.querySelectorAll('.kanban-column');
+
+  cards.forEach(card => {
+    card.addEventListener('dragstart', (e) => {
+      card.classList.add('is-dragging');
+      e.dataTransfer.setData('text/plain', card.dataset.taskId);
+    });
+
+    card.addEventListener('dragend', () => {
+      card.classList.remove('is-dragging');
+    });
+  });
+
+  columns.forEach(column => {
+    column.addEventListener('dragover', (e) => {
+      e.preventDefault(); // Necessary to allow dropping
+    });
+
+    column.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const taskId = e.dataTransfer.getData('text/plain');
+      if (!taskId) return;
+      
+      const draggingCard = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
+      
+      if (draggingCard && column !== draggingCard.parentElement) {
+        // Optimistically update the UI by moving the card
+        column.appendChild(draggingCard);
+        
+        let newStatus = 'To Do';
+        if (column.id === 'kanban-inprogress') newStatus = 'In Progress';
+        else if (column.id === 'kanban-done') newStatus = 'Done';
+
+        try {
+          const supabase = window.HYNAOS_SUPABASE.getClient();
+          const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
+          
+          if (error) {
+            console.error("Error updating task status:", error);
+          } else {
+            // Update stats when task status changes
+            if (typeof updateEmployeeDashboardStatCards === 'function') updateEmployeeDashboardStatCards();
+            if (typeof fetchBentoStats === 'function') fetchBentoStats();
+          }
+        } catch (err) {
+          console.error("Drag and drop update failed:", err);
+        }
+      }
+    });
+  });
+}
+
+
+/**
+ * NEW TASK MODAL LOGIC
+ */
+function openNewTaskModal() {
+  const modal = document.getElementById('newTaskModal');
+  if (modal) {
+    modal.classList.add('active');
+  }
+}
+
+function closeNewTaskModal() {
+  const modal = document.getElementById('newTaskModal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+// Attach Form Submit Listener
+const newTaskForm = document.getElementById('newTaskForm');
+if (newTaskForm) {
+  newTaskForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const title = document.getElementById('newTaskTitle').value;
+    const desc = document.getElementById('newTaskDesc').value;
+    const priority = document.getElementById('newTaskPriority').value;
+
+    try {
+      const supabase = window.HYNAOS_SUPABASE.getClient();
+      if (!supabase) throw new Error("Supabase not initialized");
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) throw new Error("No active session");
+
+      // Get authenticated user's full name to assign the task to themselves
+      const profileRes = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single();
+      const fullName = profileRes.data ? profileRes.data.full_name : 'Unknown Employee';
+
+      const newTask = {
+        title: title,
+        description: desc,
+        priority: priority,
+        status: 'To Do',
+        assignee_id: fullName,
+        project_id: 'Personal/Ad-Hoc', // Default fallback or can be omitted if nullable
+      };
+
+      const { error: insertError } = await supabase.from('tasks').insert([newTask]);
+      if (insertError) throw insertError;
+
+      // Reset & Close
+      newTaskForm.reset();
+      closeNewTaskModal();
+
+      // Refresh Kanban to show new card
+      if (typeof renderKanbanBoard === 'function') renderKanbanBoard();
+      
+      // Update Stats
+      if (typeof updateEmployeeDashboardStatCards === 'function') updateEmployeeDashboardStatCards();
+      if (typeof fetchBentoStats === 'function') fetchBentoStats();
+
+      // Show toast if available
+      if (typeof showToast === 'function') showToast('Task created successfully!', 'success');
+
+    } catch (err) {
+      console.error("Error creating new task:", err);
+      if (typeof showToast === 'function') showToast('Failed to create task.', 'error');
+    }
+  });
+}

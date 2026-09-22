@@ -3,95 +3,19 @@
  * Hyna Studio Management System
  */
 
-// Initial Official Hyna Studio Team Roster
-const INITIAL_EMPLOYEES = [
-  { id: "EMP-001", name: "Vignesh", email: "team.hynastudio@gmail.com", department: "Executive", position: "Founder & CEO", joiningDate: "2024-01-01", status: "active", initials: "V" },
-  { id: "EMP-002", name: "Jashwin J", email: "jashwin@hynastudio.com", department: "Executive", position: "Co-Founder & COO", joiningDate: "2024-01-01", status: "active", initials: "JJ" },
-  { id: "EMP-003", name: "Dharshan J M", email: "dharshan@hynastudio.com", department: "Executive", position: "Co-Founder & CTO", joiningDate: "2024-01-01", status: "active", initials: "D" },
-  { id: "EMP-004", name: "Linciya", email: "linciya@hynastudio.com", department: "Marketing", position: "CMO — Chief Marketing Officer", joiningDate: "2024-02-01", status: "active", initials: "L" },
-  { id: "EMP-005", name: "New Appointment", email: "cso@hynastudio.com", department: "Strategy", position: "CSO — Chief Strategy Officer", joiningDate: "2024-02-01", status: "active", initials: "CS" },
-  { id: "EMP-006", name: "Muhammed Zarif", email: "zarif@hynastudio.com", department: "Growth", position: "Director & Growth Manager", joiningDate: "2024-02-10", status: "active", initials: "MZ" },
-  { id: "EMP-007", name: "Mohamed Arshiya", email: "arshiya@hynastudio.com", department: "Product", position: "CPO — Chief Product Officer", joiningDate: "2024-02-15", status: "active", initials: "MA" },
-  { id: "EMP-008", name: "Asthamil", email: "asthamil@hynastudio.com", department: "Human Resources", position: "HR Manager", joiningDate: "2024-02-20", status: "active", initials: "A" },
-  { id: "EMP-009", name: "Tharun Krishna", email: "tharun@hynastudio.com", department: "Design", position: "Designer", joiningDate: "2024-03-01", status: "active", initials: "TK" },
-  { id: "EMP-010", name: "Akshaya", email: "akshaya@hynastudio.com", department: "Engineering", position: "DevOps Engineer", joiningDate: "2024-03-10", status: "active", initials: "A" },
-  { id: "EMP-011", name: "Thivan", email: "thivan@hynastudio.com", department: "Engineering", position: "Full Stack Developer", joiningDate: "2024-03-15", status: "active", initials: "T" },
-  { id: "EMP-012", name: "Rohit", email: "rohit@hynastudio.com", department: "Engineering", position: "Full Stack Developer", joiningDate: "2024-03-20", status: "active", initials: "R" },
-  { id: "EMP-013", name: "Anzarutheen", email: "anzar@hynastudio.com", department: "Engineering", position: "Full Stack Developer", joiningDate: "2024-04-01", status: "active", initials: "AN" }
-];
 
-// Active Projects State
-const INITIAL_PROJECTS = [
-  { id: "PRJ-101", name: "HYNAOS Core Platform", manager: "Dharshan J M", lead: "Dharshan J M", assignedMembers: ["Dharshan J M", "Rohit V", "Thivan", "Anzarutheen"], progress: 85, deadline: "2026-09-30", status: "active", description: "Core enterprise platform for Hyna Studio." },
-  { id: "PRJ-102", name: "Hyna Studio Rebrand", manager: "Tharun Krishna", lead: "Tharun Krishna", assignedMembers: ["Tharun Krishna", "Linciya", "Mohamed Arshiya"], progress: 95, deadline: "2026-09-15", status: "active", description: "Visual identity design update and brand system." },
-  { id: "PRJ-103", name: "Growth Engine & CRM", manager: "Muhammed Zarif", lead: "Muhammed Zarif", assignedMembers: ["Muhammed Zarif", "Linciya", "New Appointment"], progress: 60, deadline: "2026-10-15", status: "active", description: "Generative AI marketing copy suite." },
-  { id: "PRJ-104", name: "Product Design System", manager: "Mohamed Arshiya", lead: "Mohamed Arshiya", assignedMembers: ["Mohamed Arshiya", "Tharun Krishna"], progress: 100, deadline: "2026-08-30", status: "completed", description: "Design token library and Web UI assets." },
-  { id: "PRJ-105", name: "Mobile Workspace App", manager: "Rohit V", lead: "Rohit V", assignedMembers: ["Rohit V", "Akshaya", "Thivan"], progress: 40, deadline: "2026-11-01", status: "active", description: "Mobile application for field attendance and tasks." }
-];
 
 // State Holders
-let employeesList = [...INITIAL_EMPLOYEES];
-let projectsList = [...INITIAL_PROJECTS];
+let employeesList = [];
+let projectsList = [];
 
-function loadEmployeesFromStorage() {
-  try {
-    const stored = localStorage.getItem('hynaos_employees_list');
-    if (stored) {
-      employeesList = JSON.parse(stored);
-    } else {
-      employeesList = [...INITIAL_EMPLOYEES];
-      localStorage.setItem('hynaos_employees_list', JSON.stringify(employeesList));
-    }
-  } catch(e) {
-    employeesList = [...INITIAL_EMPLOYEES];
-  }
-}
 
-function saveEmployeesToStorage() {
-  try {
-    localStorage.setItem('hynaos_employees_list', JSON.stringify(employeesList));
-  } catch(e) {
-    console.warn("Failed to save employees to localStorage:", e);
-  }
-}
 
-function loadProjectsFromStorage() {
-  try {
-    const stored = localStorage.getItem('hynaos_projects_list');
-    if (stored) {
-      projectsList = JSON.parse(stored);
-    } else {
-      projectsList = [...INITIAL_PROJECTS];
-      localStorage.setItem('hynaos_projects_list', JSON.stringify(projectsList));
-    }
-  } catch(e) {
-    projectsList = [...INITIAL_PROJECTS];
-  }
-}
 
-function saveProjectsToStorage() {
-  try {
-    localStorage.setItem('hynaos_projects_list', JSON.stringify(projectsList));
-  } catch(e) {
-    console.warn("Failed to save projects to localStorage:", e);
-  }
-}
-const INITIAL_TASKS = [
-  { id: "TSK-01", title: "Supabase Authentication Setup", desc: "Integrate Supabase Auth with RLS Policies.", priority: "urgent", assignee: "Dharshan J M", col: "completed" },
-  { id: "TSK-02", title: "Admin Panel Roster Redesign", desc: "Build responsive data tables for team members.", priority: "high", assignee: "Tharun Krishna", col: "in_progress" },
-  { id: "TSK-03", title: "Kanban Board Drag & Drop", desc: "Build interactive task movement for Admin & Employee panels.", priority: "urgent", assignee: "Rohit V", col: "in_progress" },
-  { id: "TSK-04", title: "Growth Engine Copywriter AI", desc: "Hook GPT-4 API endpoint into Growth Engine.", priority: "medium", assignee: "Muhammed Zarif", col: "todo" },
-  { id: "TSK-05", title: "Design Token Export System", desc: "Export Figma variables to CSS custom properties.", priority: "low", assignee: "Mohamed Arshiya", col: "review" }
-];
 
-const INITIAL_LEAVES = [
-  { id: "LV-1", name: "Rohit V", type: "Sick Leave", dates: "Sep 10 - Sep 11", reason: "Medical Appointment", status: "Pending" },
-  { id: "LV-2", name: "Linciya", type: "Casual Leave", dates: "Sep 15 - Sep 16", reason: "Family Event", status: "Pending" },
-  { id: "LV-3", name: "Thivan", type: "Earned Leave", dates: "Sep 20 - Sep 25", reason: "Personal Vacation", status: "Approved" }
-];
 
-let tasksList = [...INITIAL_TASKS];
-let leavesList = [...INITIAL_LEAVES];
+let tasksList = [];
+let leavesList = [];
 
 // Page Lifecycle Initialization
 document.addEventListener('DOMContentLoaded', async () => {
@@ -102,9 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initNavigation();
 
   // 3. Render Dashboard Stat Cards & Tables
-  loadEmployeesFromStorage();
-  loadProjectsFromStorage();
-  populateProjectModalOptions();
+      populateProjectModalOptions();
   renderEmployeesTable();
   renderProjectsList();
   renderKanbanBoard();
@@ -253,6 +175,17 @@ async function renderEmployeesTable() {
     const { data: profiles, error } = await supabase.from('profiles').select('*');
     if (error) throw error;
     
+    employeesList = profiles.map(e => ({
+      id: e.employee_id || e.id,
+      name: e.full_name,
+      email: e.email,
+      department: e.department,
+      position: e.position,
+      joiningDate: e.joined_at,
+      status: e.status
+    }));
+
+    
     if (!profiles || profiles.length === 0) {
       tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No employees found.</td></tr>';
       return;
@@ -309,6 +242,9 @@ async function renderProjectsList() {
 
     const { data: projects, error } = await supabase.from('projects').select('*');
     if (error) throw error;
+    
+    projectsList = projects;
+
     
     container.innerHTML = '';
     
@@ -379,6 +315,9 @@ async function renderKanbanBoard() {
 
     const { data: tasks, error } = await supabase.from('tasks').select('*');
     if (error) throw error;
+    
+    tasksList = tasks;
+
     
     todoCol.innerHTML = '';
     progCol.innerHTML = '';
@@ -456,6 +395,9 @@ async function renderLeavesTable() {
 
     const { data: leaves, error } = await supabase.from('leave_requests').select('*');
     if (error) throw error;
+    
+    leavesList = leaves;
+
     
     if (!leaves || leaves.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No leave requests available.</td></tr>';
@@ -744,21 +686,7 @@ function initModals() {
 
         saveEmployeesToStorage();
 
-        // Also check if this matches current user profile in storage
         try {
-          const currStr = localStorage.getItem('hynaos_current_user');
-          if (currStr) {
-            const currUser = JSON.parse(currStr);
-            if (currUser.employee_id === empId || currUser.id === empId || (currUser.email && currUser.email.toLowerCase() === email.toLowerCase())) {
-              currUser.full_name = name;
-              currUser.name = name;
-              currUser.email = email;
-              currUser.department = dept;
-              currUser.position = pos;
-              currUser.status = status;
-              localStorage.setItem('hynaos_current_user', JSON.stringify(currUser));
-            }
-          }
           window.dispatchEvent(new Event('storage'));
           window.dispatchEvent(new Event('hynaos_employees_updated'));
         } catch(err) {}
@@ -991,8 +919,7 @@ function refreshAllDashboardData(showToast = true) {
   refreshIcons.forEach(icon => icon.classList.add('spin-icon'));
 
   // 1. Reload data state
-  loadProjectsFromStorage();
-
+  
   // 2. Re-render all view tables and components
   if (typeof renderEmployeesTable === 'function') renderEmployeesTable();
   if (typeof renderProjectsList === 'function') renderProjectsList();
@@ -1110,14 +1037,12 @@ window.showHynaToast = showHynaToast;
 // Auto-sync projects on storage update
 window.addEventListener('storage', (e) => {
   if (!e.key || e.key === 'hynaos_projects_list') {
-    loadProjectsFromStorage();
-    renderProjectsList();
+        renderProjectsList();
     updateDashboardStatCards();
   }
 });
 window.addEventListener('hynaos_projects_updated', () => {
-  loadProjectsFromStorage();
-  renderProjectsList();
+    renderProjectsList();
   updateDashboardStatCards();
 });
 

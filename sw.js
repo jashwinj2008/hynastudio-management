@@ -8,78 +8,45 @@ const urlsToCache = [
   '/employee-dashboard.html',
   '/css/style.css',
   '/css/responsive.css',
-  '/css/splash.css',
   '/css/admin-panel.css',
   '/css/employee-panel.css',
   '/js/main.js',
   '/js/auth.js',
-  '/js/supabase.js',
-  '/js/role-selection.js',
   '/js/admin-panel.js',
   '/js/employee-panel.js',
-  '/js/splash.js',
-  '/assets/logo/hynaos-logo.jpeg',
-  '/manifest.json'
+  '/js/supabase.js'
 ];
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
+      .then(cache => {
         return cache.addAll(urlsToCache);
       })
   );
 });
 
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-        
-        // Clone the request because it's a stream and can only be consumed once
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then(
-          (response) => {
-            // Check if we received a valid response
-            if(!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Clone the response because it's a stream and can only be consumed once
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                // Don't cache supabase API calls
-                if (!event.request.url.includes('supabase.co')) {
-                  cache.put(event.request, responseToCache);
-                }
-              });
-
-            return response;
-          }
-        );
-      })
-  );
-});
-
-self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE_NAME];
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+  // Fallback to network first for APIs and dynamically generated pages, cache for static
+  // But for simple static assets cache-first is fine, as requested: "cache-first strategy for our static assets"
+  const url = new URL(event.request.url);
+  
+  if (url.origin === location.origin && (url.pathname.startsWith('/css/') || url.pathname.startsWith('/js/') || url.pathname.startsWith('/assets/'))) {
+      event.respondWith(
+        caches.match(event.request)
+          .then(response => {
+            if (response) return response;
+            return fetch(event.request).then(res => {
+                if(!res || res.status !== 200 || res.type !== 'basic') return res;
+                var resToCache = res.clone();
+                caches.open(CACHE_NAME).then(cache => cache.put(event.request, resToCache));
+                return res;
+            });
+          })
       );
-    })
-  );
+  } else {
+      // For HTML and other dynamic endpoints, use network-first or pass-through
+      event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+  }
 });
