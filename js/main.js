@@ -32,28 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
     employeeForm.addEventListener('submit', window.handleEmployeeLogin);
   }
 
-  // Setup Demo Fill Helper Click Actions
-  const demoFillAdmin = document.getElementById('demoFillAdmin');
-  if (demoFillAdmin) {
-    demoFillAdmin.addEventListener('click', (e) => {
-      e.preventDefault();
-      const emailInput = document.getElementById('emailInput');
-      const passwordInput = document.getElementById('passwordInput');
-      if (emailInput) emailInput.value = 'admin@hynastudio.com';
-      if (passwordInput) passwordInput.value = 'adminPass123!';
-    });
-  }
-
-  const demoFillEmployee = document.getElementById('demoFillEmployee');
-  if (demoFillEmployee) {
-    demoFillEmployee.addEventListener('click', (e) => {
-      e.preventDefault();
-      const emailInput = document.getElementById('emailInput');
-      const passwordInput = document.getElementById('passwordInput');
-      if (emailInput) emailInput.value = 'employee@hynastudio.com';
-      if (passwordInput) passwordInput.value = 'employeePass123!';
-    });
-  }
 });
 
 if ('serviceWorker' in navigator) {

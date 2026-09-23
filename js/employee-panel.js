@@ -92,15 +92,14 @@ document.addEventListener('DOMContentLoaded', async () => {
  * Verify Employee Security Access
  */
 async function verifyEmployeeAccess() {
-  const { getClient, isDemoMode } = window.HYNAOS_SUPABASE || {};
-
-  if (isDemoMode() || !getClient()) {
-    console.log("⚡ Employee Panel: Authorized (Demo Mode).");
+  const supabase = window.HYNAOS_SUPABASE ? window.HYNAOS_SUPABASE.getClient() : null;
+  if (!supabase) {
+    console.error("HYNAOS DB Role Check Error: Supabase client not initialized.");
+    window.location.href = 'index.html';
     return;
   }
 
   try {
-    const supabase = getClient();
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {

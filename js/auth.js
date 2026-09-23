@@ -104,29 +104,43 @@ async function checkUserRole(userId) {
  * Enforce Session State & Route Protection
  */
 async function enforceSessionState() {
-  const supabase = window.HYNAOS_SUPABASE ? window.HYNAOS_SUPABASE.getClient() : null;
-  if (!supabase) return;
-  const { data: { session }, error } = await supabase.auth.getSession();
+  setLoadingState(true);
   
-  const currentPath = window.location.pathname.toLowerCase();
-  const isDashboardPage = currentPath.includes('dashboard');
-  const isLoginPage = currentPath.includes('login') || currentPath.endsWith('index.html') || currentPath === '/';
-
-  // If on a dashboard but no valid session, kick to login
-  if (isDashboardPage && (!session || error)) {
-    window.location.href = 'index.html';
+  const supabase = window.HYNAOS_SUPABASE ? window.HYNAOS_SUPABASE.getClient() : null;
+  if (!supabase) {
+    setLoadingState(false);
     return;
   }
+  
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    const currentPath = window.location.pathname.toLowerCase();
+    const isDashboardPage = currentPath.includes('dashboard');
+    const isLoginPage = currentPath.includes('login') || currentPath.endsWith('index.html') || currentPath === '/';
 
-  // If on a login page and session exists, route to correct dashboard
-  if (isLoginPage && session && !error) {
-    const role = await checkUserRole(session.user.id);
-    if (role === 'admin') {
-      window.location.href = 'admin-dashboard.html';
-    } else if (role === 'employee') {
-      window.location.href = 'employee-dashboard.html';
+    // If on a dashboard but no valid session, kick to login
+    if (isDashboardPage && (!session || error)) {
+      window.location.href = 'index.html';
+      return;
     }
+
+    // If on a login page and session exists, route to correct dashboard
+    if (isLoginPage && session && !error) {
+      const role = await checkUserRole(session.user.id);
+      if (role === 'admin') {
+        window.location.href = 'admin-dashboard.html';
+        return; // Wait for redirect
+      } else if (role === 'employee') {
+        window.location.href = 'employee-dashboard.html';
+        return; // Wait for redirect
+      }
+    }
+  } catch (err) {
+    console.error("Session check error:", err);
   }
+  
+  setLoadingState(false);
 }
 
 /**

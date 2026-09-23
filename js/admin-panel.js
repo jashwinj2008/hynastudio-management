@@ -49,16 +49,14 @@ document.addEventListener('DOMContentLoaded', async () => {
  * Verify Admin Security Access
  */
 async function verifyAdminAccess() {
-  const { getClient, isDemoMode } = window.HYNAOS_SUPABASE || {};
-
-  // Check demo mode or real Supabase auth
-  if (!isDemoMode || isDemoMode() || !getClient || !getClient()) {
-    console.log("⚡ Admin Panel: Authorized (Demo Mode).");
+  const supabase = window.HYNAOS_SUPABASE ? window.HYNAOS_SUPABASE.getClient() : null;
+  if (!supabase) {
+    console.error("HYNAOS DB Role Check Error: Supabase client not initialized.");
+    window.location.href = 'index.html';
     return;
   }
 
   try {
-    const supabase = getClient();
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
