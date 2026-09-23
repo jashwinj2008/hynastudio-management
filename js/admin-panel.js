@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderSalariesTable();
   renderPerformanceTable();
   updateDashboardStatCards();
+  fetchAdminBentoStats();
 
   // 4. Initialize Modals & Forms
   initModals();
@@ -884,6 +885,27 @@ async function updateDashboardStatCards() {
     
   } catch (err) {
     console.error("Supabase RLS/Fetch Error [stats]:", err);
+  }
+}
+
+async function fetchAdminBentoStats() {
+  try {
+    const supabase = window.HYNAOS_SUPABASE.getClient();
+    if (!supabase) return;
+
+    const { count: empCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+    const { count: prjCount } = await supabase.from('projects').select('*', { count: 'exact', head: true });
+    const { count: leavesCount } = await supabase.from('leave_requests').select('*', { count: 'exact', head: true }).eq('status', 'Pending');
+    
+    const empElem = document.getElementById('bento-total-employees');
+    const prjElem = document.getElementById('bento-active-projects');
+    const leaveElem = document.getElementById('bento-pending-leaves');
+    
+    if (empElem && empCount !== null) empElem.textContent = empCount;
+    if (prjElem && prjCount !== null) prjElem.textContent = prjCount;
+    if (leaveElem && leavesCount !== null) leaveElem.textContent = leavesCount;
+  } catch (err) {
+    console.error("Bento Stats Error:", err);
   }
 }
 

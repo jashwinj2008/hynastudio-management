@@ -233,72 +233,48 @@
         </div>
       </div>
 
-      <!-- Stats Cards Grid -->
-      <div class="stats-grid">
+      <!-- BENTO BOX WIDGETS -->
+      <div class="bento-grid">
         
-        <div class="stat-card">
-          <div class="stat-info">
-            <span class="title">Total Employees</span>
-            <h3 class="value" id="statTotalEmployees">13</h3>
-            <span class="stat-trend trend-up"><i data-lucide="trending-up" size="12"></i> 100% Active</span>
+        <!-- 1. Stat Card: Total Employees -->
+        <div class="bento-card">
+          <div class="bento-header">
+            <h3 class="bento-title">
+              <i data-lucide="users" width="16" height="16"></i> 
+              Total Employees
+            </h3>
           </div>
-          <div class="stat-icon-box icon-crimson">
-            <i data-lucide="users" size="24"></i>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-info">
-            <span class="title">Present Today</span>
-            <h3 class="value" id="statPresentToday">11</h3>
-            <span class="stat-trend trend-up"><i data-lucide="check-circle" size="12"></i> 85% On-Time</span>
-          </div>
-          <div class="stat-icon-box icon-emerald">
-            <i data-lucide="user-check" size="24"></i>
+          <div class="bento-body">
+            <div class="bento-stat" id="bento-total-employees">--</div>
+            <div class="bento-desc">Registered profiles</div>
           </div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-info">
-            <span class="title">Active Projects</span>
-            <h3 class="value" id="statActiveProjects">04</h3>
-            <span class="stat-trend trend-up"><i data-lucide="folder" size="12"></i> 2 In Final Stage</span>
+        <!-- 2. Stat Card: Active Projects -->
+        <div class="bento-card">
+          <div class="bento-header">
+            <h3 class="bento-title">
+              <i data-lucide="folder-kanban" width="16" height="16"></i> 
+              Active Projects
+            </h3>
           </div>
-          <div class="stat-icon-box icon-blue">
-            <i data-lucide="folder-kanban" size="24"></i>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-info">
-            <span class="title">Completed Tasks</span>
-            <h3 class="value" id="statCompletedTasks">48</h3>
-            <span class="stat-trend trend-up"><i data-lucide="check-square" size="12"></i> +12 this week</span>
-          </div>
-          <div class="stat-icon-box icon-emerald">
-            <i data-lucide="check-square" size="24"></i>
+          <div class="bento-body">
+            <div class="bento-stat" id="bento-active-projects">--</div>
+            <div class="bento-desc">Ongoing company projects</div>
           </div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-info">
-            <span class="title">Pending Tasks</span>
-            <h3 class="value" id="statPendingTasks">14</h3>
-            <span class="stat-trend trend-down"><i data-lucide="clock" size="12"></i> 3 Urgent</span>
+        <!-- 3. Stat Card: Pending Leaves -->
+        <div class="bento-card">
+          <div class="bento-header">
+            <h3 class="bento-title">
+              <i data-lucide="calendar-days" width="16" height="16"></i> 
+              Pending Leaves
+            </h3>
           </div>
-          <div class="stat-icon-box icon-amber">
-            <i data-lucide="hourglass" size="24"></i>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-info">
-            <span class="title">Monthly Salary</span>
-            <h3 class="value" id="statMonthlySalary">₹ 4.85L</h3>
-            <span class="stat-trend trend-up"><i data-lucide="shield-check" size="12"></i> Verified</span>
-          </div>
-          <div class="stat-icon-box icon-crimson">
-            <i data-lucide="badge-indian-rupee" size="24"></i>
+          <div class="bento-body">
+            <div class="bento-stat" id="bento-pending-leaves">--</div>
+            <div class="bento-desc">Awaiting admin review</div>
           </div>
         </div>
 
