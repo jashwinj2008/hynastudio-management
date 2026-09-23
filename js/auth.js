@@ -77,14 +77,10 @@ function isValidEmail(email) {
  * Fetch Profile and Check Actual Database Role using the current session
  */
 async function checkUserRole(userId) {
-  const { getClient, isDemoMode } = window.HYNAOS_SUPABASE || {};
-
-  if (isDemoMode() || !getClient()) {
-    return null;
-  }
+  const supabase = window.HYNAOS_SUPABASE ? window.HYNAOS_SUPABASE.getClient() : null;
+  if (!supabase) return null;
 
   try {
-    const supabase = getClient();
     // With RLS, this will only return the profile if the authenticated user has access
     const { data, error } = await supabase
       .from('profiles')
@@ -108,10 +104,8 @@ async function checkUserRole(userId) {
  * Enforce Session State & Route Protection
  */
 async function enforceSessionState() {
-  const { getClient, isDemoMode } = window.HYNAOS_SUPABASE || {};
-  if (isDemoMode() || !getClient()) return;
-
-  const supabase = getClient();
+  const supabase = window.HYNAOS_SUPABASE ? window.HYNAOS_SUPABASE.getClient() : null;
+  if (!supabase) return;
   const { data: { session }, error } = await supabase.auth.getSession();
   
   const currentPath = window.location.pathname.toLowerCase();
@@ -158,16 +152,11 @@ async function handleAdminLogin(event) {
   }
 
   setLoadingState(true);
-  const { getClient, isDemoMode } = window.HYNAOS_SUPABASE || {};
+  const supabase = window.HYNAOS_SUPABASE ? window.HYNAOS_SUPABASE.getClient() : null;
 
   try {
-    if (isDemoMode() || !getClient()) {
-      setLoadingState(false);
-      showAlert('Demo mode does not support cryptographic sessions.', 'danger');
-      return;
-    }
+    if (!supabase) throw new Error("Supabase client not initialized.");
 
-    const supabase = getClient();
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -183,26 +172,28 @@ async function handleAdminLogin(event) {
 
     const user = authData.user;
     const actualRole = await checkUserRole(user.id);
-
-    if (actualRole !== 'admin') {
-      // Sign out unauthorized user session immediately
-      await supabase.auth.signOut();
-      setLoadingState(false);
-      showAlert('You do not have Administrator access.', 'danger');
-      return;
-    }
-
-    // Login Success - Session is securely handled by Supabase client
+    
     setLoadingState(false);
-    showAlert('Administrator login verified! Access granted.', 'success');
-    setTimeout(() => {
-      window.location.href = 'admin-dashboard.html';
-    }, 600);
+
+    if (actualRole === 'admin') {
+      showAlert('Login successful! Access granted.', 'success');
+      setTimeout(() => {
+        window.location.href = 'admin-dashboard.html';
+      }, 600);
+    } else if (actualRole === 'employee') {
+      showAlert('Login successful! Access granted.', 'success');
+      setTimeout(() => {
+        window.location.href = 'employee-dashboard.html';
+      }, 600);
+    } else {
+      await supabase.auth.signOut();
+      showAlert('No valid role found for this user.', 'danger');
+    }
 
   } catch (err) {
     setLoadingState(false);
     console.error('HYNAOS Auth Exception:', err);
-    showAlert('A network or authentication error occurred. Please try again.');
+    showAlert(err.message || 'A network or authentication error occurred. Please try again.');
   }
 }
 
@@ -229,16 +220,11 @@ async function handleEmployeeLogin(event) {
   }
 
   setLoadingState(true);
-  const { getClient, isDemoMode } = window.HYNAOS_SUPABASE || {};
+  const supabase = window.HYNAOS_SUPABASE ? window.HYNAOS_SUPABASE.getClient() : null;
 
   try {
-    if (isDemoMode() || !getClient()) {
-      setLoadingState(false);
-      showAlert('Demo mode does not support cryptographic sessions.', 'danger');
-      return;
-    }
+    if (!supabase) throw new Error("Supabase client not initialized.");
 
-    const supabase = getClient();
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -252,17 +238,30 @@ async function handleEmployeeLogin(event) {
       return;
     }
 
-    // Login Success - Session is securely handled by Supabase client
+    const user = authData.user;
+    const actualRole = await checkUserRole(user.id);
+    
     setLoadingState(false);
-    showAlert('Employee login verified! Access granted.', 'success');
-    setTimeout(() => {
-      window.location.href = 'employee-dashboard.html';
-    }, 600);
+
+    if (actualRole === 'admin') {
+      showAlert('Login successful! Access granted.', 'success');
+      setTimeout(() => {
+        window.location.href = 'admin-dashboard.html';
+      }, 600);
+    } else if (actualRole === 'employee') {
+      showAlert('Login successful! Access granted.', 'success');
+      setTimeout(() => {
+        window.location.href = 'employee-dashboard.html';
+      }, 600);
+    } else {
+      await supabase.auth.signOut();
+      showAlert('No valid role found for this user.', 'danger');
+    }
 
   } catch (err) {
     setLoadingState(false);
     console.error('HYNAOS Auth Exception:', err);
-    showAlert('A network or authentication error occurred. Please try again.');
+    showAlert(err.message || 'A network or authentication error occurred. Please try again.');
   }
 }
 
@@ -278,15 +277,10 @@ async function forgotPassword() {
     return;
   }
 
-  const { getClient, isDemoMode } = window.HYNAOS_SUPABASE || {};
-
-  if (isDemoMode() || !getClient()) {
-    showAlert(`Demo Mode: Password reset instructions sent to ${email}`, 'success');
-    return;
-  }
+  const supabase = window.HYNAOS_SUPABASE ? window.HYNAOS_SUPABASE.getClient() : null;
+  if (!supabase) return;
 
   try {
-    const supabase = getClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + '/reset-password.html'
     });
@@ -306,10 +300,9 @@ async function forgotPassword() {
  * Handle User Logout
  */
 async function logout() {
-  const { getClient, isDemoMode } = window.HYNAOS_SUPABASE || {};
-
-  if (!isDemoMode() && getClient()) {
-    await getClient().auth.signOut();
+  const supabase = window.HYNAOS_SUPABASE ? window.HYNAOS_SUPABASE.getClient() : null;
+  if (supabase) {
+    await supabase.auth.signOut();
   }
   window.location.href = 'index.html';
 }
